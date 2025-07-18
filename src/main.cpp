@@ -11,13 +11,9 @@ int main(int argc, char* argv[])
 {
     Game* g_game = new Game();
 
-    if (g_game->init("SDL Basic Drawing", WINDOW_POS_X, WINDOW_POS_Y,
+    if (g_game->init("Sorc Box & Dest Box", WINDOW_POS_X, WINDOW_POS_Y,
         WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN)) {
-        while (g_game->running()) {
-            g_game->handleEvents();
-            g_game->update();
-            g_game->render();
-        }
+        g_game->gameLoop();    // 🆕 NEW: 게임 루프 실행
     }
     else {
         std::cerr << "게임 초기화 실패." << std::endl;

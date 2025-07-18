@@ -1,8 +1,10 @@
 ﻿#include "Game.h"
 #include <iostream>
 
-// 🆕 생성자: 텍스처 포인터 초기화 추가
-Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr), m_pTexture(nullptr) {
+// 🔄 CHANGE: 새로운 멤버 변수들 초기화 추가
+Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr),
+m_pTexture(nullptr), m_frameStart(0), m_frameTime(0),
+m_frameCount(0), m_lastTime(0), m_dstRect{ 0, 0, 0, 0 } {
 }
 
 Game::~Game() {
@@ -34,10 +36,7 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 배경색 설정
-    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
-
-    // 🆕 NEW: 이미지 로딩 및 텍스처 생성
+    // 이미지 로딩 및 텍스처 생성
     SDL_Surface* tempSurface = SDL_LoadBMP("./assets/rider.bmp");
     if (!tempSurface) {
         std::cerr << "이미지 로드 실패: " << SDL_GetError() << std::endl;
@@ -47,9 +46,8 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // Surface를 Texture로 변환
     m_pTexture = SDL_CreateTextureFromSurface(m_pRenderer, tempSurface);
-    SDL_FreeSurface(tempSurface); // 임시 Surface 해제
+    SDL_FreeSurface(tempSurface);
 
     if (!m_pTexture) {
         std::cerr << "텍스처 생성 실패: " << SDL_GetError() << std::endl;
@@ -59,8 +57,50 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
+    // 🆕 NEW: 텍스처 크기 및 창 크기 계산
+    int texW = 0, texH = 0;
+    SDL_QueryTexture(m_pTexture, nullptr, nullptr, &texW, &texH);
+
+    int winW = 0, winH = 0;
+    SDL_GetWindowSize(m_pWindow, &winW, &winH);
+
+    // 🆕 NEW: 텍스처를 중앙에 배치
+    int x = (winW - texW) / 2;
+    int y = (winH - texH) / 2;
+    m_dstRect = { x, y, texW, texH };
+
+    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
+
     m_bRunning = true;
     return true;
+}
+
+// 🆕 NEW: 게임 루프 구현
+void Game::gameLoop() {
+    m_lastTime = SDL_GetTicks();
+
+    while (running()) {
+        m_frameStart = SDL_GetTicks();
+
+        handleEvents();
+        update();
+        render();
+
+        m_frameTime = SDL_GetTicks() - m_frameStart;
+        m_frameCount++;
+
+        // 1초마다 FPS 출력
+        if (SDL_GetTicks() - m_lastTime >= 1000) {
+            std::cout << "FPS: " << m_frameCount << std::endl;
+            m_frameCount = 0;
+            m_lastTime = SDL_GetTicks();
+        }
+
+        // 목표 프레임 시간보다 빨리 처리된 경우 대기
+        if (m_frameTime < FRAME_DELAY) {
+            SDL_Delay(FRAME_DELAY - m_frameTime);
+        }
+    }
 }
 
 void Game::handleEvents() {
@@ -77,18 +117,15 @@ void Game::update() {
 }
 
 void Game::render() {
-    // 화면 초기화
     SDL_RenderClear(m_pRenderer);
 
-    // 🆕 NEW: 텍스처 렌더링
-    SDL_RenderCopy(m_pRenderer, m_pTexture, nullptr, nullptr);
+    // 🔄 CHANGE: 텍스처를 중앙에 렌더링
+    SDL_RenderCopy(m_pRenderer, m_pTexture, nullptr, &m_dstRect);
 
-    // 화면 출력
     SDL_RenderPresent(m_pRenderer);
 }
 
 void Game::clean() {
-    // 🆕 NEW: 텍스처 해제
     if (m_pTexture) {
         SDL_DestroyTexture(m_pTexture);
         m_pTexture = nullptr;
