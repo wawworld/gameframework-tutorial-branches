@@ -1,18 +1,15 @@
 ﻿#include "Game.h"
 #include <iostream>
 
-// 🆕 NEW: Game 클래스 생성자 - 멤버 변수 초기화
-Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr) {
-    // 초기화 리스트를 통한 안전한 초기화
+// 🆕 생성자: 텍스처 포인터 초기화 추가
+Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr), m_pTexture(nullptr) {
 }
 
-// 🆕 NEW: Game 클래스 소멸자 - 게임 종료 시 호출되어 리소스를 정리
 Game::~Game() {
-    clean();  // 모든 리소스를 정리하는 함수 호출
+    clean();
 }
 
-bool Game::init(const char* title, int xpos, int ypos,
-    int width, int height, int flags) {
+bool Game::init(const char* title, int xpos, int ypos, int width, int height, int flags) {
     // SDL 초기화
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         std::cerr << "SDL Initialization failed: " << SDL_GetError() << std::endl;
@@ -37,9 +34,32 @@ bool Game::init(const char* title, int xpos, int ypos,
         return false;
     }
 
-    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);  // 검은색 배경
-    m_bRunning = true;  // 게임 실행 상태로 설정
+    // 배경색 설정
+    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
 
+    // 🆕 NEW: 이미지 로딩 및 텍스처 생성
+    SDL_Surface* tempSurface = SDL_LoadBMP("./assets/rider.bmp");
+    if (!tempSurface) {
+        std::cerr << "이미지 로드 실패: " << SDL_GetError() << std::endl;
+        SDL_DestroyRenderer(m_pRenderer);
+        SDL_DestroyWindow(m_pWindow);
+        SDL_Quit();
+        return false;
+    }
+
+    // Surface를 Texture로 변환
+    m_pTexture = SDL_CreateTextureFromSurface(m_pRenderer, tempSurface);
+    SDL_FreeSurface(tempSurface); // 임시 Surface 해제
+
+    if (!m_pTexture) {
+        std::cerr << "텍스처 생성 실패: " << SDL_GetError() << std::endl;
+        SDL_DestroyRenderer(m_pRenderer);
+        SDL_DestroyWindow(m_pWindow);
+        SDL_Quit();
+        return false;
+    }
+
+    m_bRunning = true;
     return true;
 }
 
@@ -53,24 +73,37 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
-    // 🆕 NEW: 게임 로직 업데이트 (현재는 비어있음)
-    // 향후 게임 오브젝트 위치, 상태 업데이트 등이 여기에 추가
+    // 게임 로직 업데이트
 }
 
 void Game::render() {
-    SDL_RenderClear(m_pRenderer);      // 화면 지우기
-    SDL_RenderPresent(m_pRenderer);    // 화면 출력
+    // 화면 초기화
+    SDL_RenderClear(m_pRenderer);
+
+    // 🆕 NEW: 텍스처 렌더링
+    SDL_RenderCopy(m_pRenderer, m_pTexture, nullptr, nullptr);
+
+    // 화면 출력
+    SDL_RenderPresent(m_pRenderer);
 }
 
 void Game::clean() {
+    // 🆕 NEW: 텍스처 해제
+    if (m_pTexture) {
+        SDL_DestroyTexture(m_pTexture);
+        m_pTexture = nullptr;
+    }
+
     if (m_pRenderer) {
         SDL_DestroyRenderer(m_pRenderer);
         m_pRenderer = nullptr;
     }
+
     if (m_pWindow) {
         SDL_DestroyWindow(m_pWindow);
         m_pWindow = nullptr;
     }
+
     SDL_Quit();
 }
 
