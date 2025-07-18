@@ -1,11 +1,13 @@
 ﻿#include "Game.h"
 #include <iostream>
 
-// 🔄 CHANGE: 애니메이션 관련 멤버 변수 초기화 추가
+// 🔄 CHANGE: 다중 텍스처 및 입력 관련 멤버 변수 초기화 추가
 Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr),
-m_pTexture(nullptr), m_frameStart(0), m_frameTime(0),
-m_frameCount(0), m_lastTime(0), m_srcRect{ 0, 0, 0, 0 },
-m_destRect{ 0, 0, 0, 0 }, m_direction(1) {
+m_pTexture(nullptr), m_pTexture2(nullptr), m_frameStart(0),
+m_frameTime(0), m_frameCount(0), m_lastTime(0),
+m_srcRect{ 0, 0, 0, 0 }, m_destRect{ 0, 0, 0, 0 },
+m_srcRect2{ 0, 0, 0, 0 }, m_destRect2{ 0, 0, 0, 0 },
+m_direction(1), m_velocityX(0), m_velocityY(0) {
 }
 
 Game::~Game() {
@@ -15,14 +17,22 @@ Game::~Game() {
 bool Game::init(const char* title, int xpos, int ypos, int width, int height, int flags) {
     // SDL 초기화
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-        std::cerr << "SDL Initialization failed: " << SDL_GetError() << std::endl;
+        std::cerr << "SDL 초기화 실패: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    // 창 생성
+    // 🆕 NEW: SDL_Image 초기화
+    if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
+        std::cerr << "SDL_image 초기화 실패: " << IMG_GetError() << std::endl;
+        SDL_Quit();
+        return false;
+    }
+
+    // 윈도우 생성
     m_pWindow = SDL_CreateWindow(title, xpos, ypos, width, height, flags);
     if (m_pWindow == nullptr) {
-        std::cerr << "Window creation failed: " << SDL_GetError() << std::endl;
+        std::cerr << "윈도우 생성 실패: " << SDL_GetError() << std::endl;
+        IMG_Quit();
         SDL_Quit();
         return false;
     }
@@ -31,18 +41,20 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
     m_pRenderer = SDL_CreateRenderer(m_pWindow, -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (m_pRenderer == nullptr) {
-        std::cerr << "Renderer creation failed: " << SDL_GetError() << std::endl;
+        std::cerr << "렌더러 생성 실패: " << SDL_GetError() << std::endl;
         SDL_DestroyWindow(m_pWindow);
+        IMG_Quit();
         SDL_Quit();
         return false;
     }
 
-    // 🔄 CHANGE: 애니메이션 스프라이트 시트 로딩
-    SDL_Surface* tempSurface = SDL_LoadBMP("./assets/animate.bmp");
+    // 🔄 CHANGE: PNG 파일로 첫 번째 텍스처 로딩
+    SDL_Surface* tempSurface = IMG_Load("./assets/animate-alpha.png");
     if (!tempSurface) {
-        std::cerr << "이미지 로드 실패: " << SDL_GetError() << std::endl;
+        std::cerr << "이미지 로드 실패: " << IMG_GetError() << std::endl;
         SDL_DestroyRenderer(m_pRenderer);
         SDL_DestroyWindow(m_pWindow);
+        IMG_Quit();
         SDL_Quit();
         return false;
     }
@@ -54,17 +66,45 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         std::cerr << "텍스처 생성 실패: " << SDL_GetError() << std::endl;
         SDL_DestroyRenderer(m_pRenderer);
         SDL_DestroyWindow(m_pWindow);
+        IMG_Quit();
         SDL_Quit();
         return false;
     }
 
-    // 🆕 NEW: 원본 상자 설정 (첫 번째 프레임)
-    m_srcRect = { 0, 0, 128, 82 };  // 각 프레임 크기 128x82
+    // 🆕 NEW: 두 번째 이미지 로드 (키보드 제어용)
+    SDL_Surface* tempSurface2 = SDL_LoadBMP("./assets/rider.bmp");
+    if (!tempSurface2) {
+        std::cerr << "두 번째 이미지 로드 실패: " << SDL_GetError() << std::endl;
+        SDL_DestroyTexture(m_pTexture);
+        SDL_DestroyRenderer(m_pRenderer);
+        SDL_DestroyWindow(m_pWindow);
+        IMG_Quit();
+        SDL_Quit();
+        return false;
+    }
 
-    // 🆕 NEW: 대상 상자 설정 (화면 시작 위치)
-    m_destRect = { 0, 200, 128, 82 };  // 화면 왼쪽에서 시작, y=200 위치
+    m_pTexture2 = SDL_CreateTextureFromSurface(m_pRenderer, tempSurface2);
+    SDL_FreeSurface(tempSurface2);
 
-    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
+    if (!m_pTexture2) {
+        std::cerr << "두 번째 텍스처 생성 실패: " << SDL_GetError() << std::endl;
+        SDL_DestroyTexture(m_pTexture);
+        SDL_DestroyRenderer(m_pRenderer);
+        SDL_DestroyWindow(m_pWindow);
+        IMG_Quit();
+        SDL_Quit();
+        return false;
+    }
+
+    // 첫 번째 텍스처 설정 (애니메이션 스프라이트)
+    m_srcRect = { 0, 0, 128, 82 };
+    m_destRect = { 0, 200, 128, 82 };
+
+    // 🆕 NEW: 두 번째 텍스처 설정 (키보드 제어 스프라이트)
+    m_srcRect2 = { 0, 0, 128, 128 };
+    m_destRect2 = { 100, 100, 128, 128 };
+
+    SDL_SetRenderDrawColor(m_pRenderer, 100, 0, 0, 255);
 
     m_bRunning = true;
     return true;
@@ -103,29 +143,74 @@ void Game::handleEvents() {
         if (event.type == SDL_QUIT) {
             m_bRunning = false;
         }
+
+        // 🆕 NEW: 키보드 입력 처리
+        if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+            case SDLK_UP:
+                m_velocityY = -1;
+                break;  // 위로 이동
+            case SDLK_DOWN:
+                m_velocityY = 1;
+                break;  // 아래로 이동
+            case SDLK_LEFT:
+                m_velocityX = -1;
+                break;  // 왼쪽으로 이동
+            case SDLK_RIGHT:
+                m_velocityX = 1;
+                break;  // 오른쪽으로 이동
+            }
+        }
+
+        // 🆕 NEW: 키 떼기 처리
+        if (event.type == SDL_KEYUP) {
+            switch (event.key.keysym.sym) {
+            case SDLK_UP:
+            case SDLK_DOWN:
+                m_velocityY = 0;
+                break;  // 수직 이동 멈춤
+            case SDLK_LEFT:
+            case SDLK_RIGHT:
+                m_velocityX = 0;
+                break;  // 수평 이동 멈춤
+            }
+        }
     }
 }
 
-// 🔄 CHANGE: 애니메이션 및 이동 처리 추가
 void Game::update() {
-    // 🆕 NEW: 프레임 애니메이션 처리
+    // 첫 번째 텍스처 애니메이션 (기존 코드)
     Uint32 ticks = SDL_GetTicks();
-    m_srcRect.x = 128 * ((ticks / 100) % 6);  // 0.1초마다 프레임 전환
+    m_srcRect.x = 128 * ((ticks / 100) % 6);
 
-    // 🆕 NEW: 좌우 이동 처리
     m_destRect.x += m_direction;
-
-    // 🆕 NEW: 경계 충돌 및 방향 전환
     if (m_destRect.x + m_destRect.w > 640 || m_destRect.x < 0) {
         m_direction = -m_direction;
     }
+
+    // 🆕 NEW: 두 번째 텍스처 키보드 기반 이동
+    m_destRect2.x += m_velocityX;
+    m_destRect2.y += m_velocityY;
+
+    // 🆕 NEW: 두 번째 텍스처 경계 충돌 처리
+    if (m_destRect2.x < 0)
+        m_destRect2.x = 0;
+    if (m_destRect2.x + m_destRect2.w > 640)
+        m_destRect2.x = 640 - m_destRect2.w;
+    if (m_destRect2.y < 0)
+        m_destRect2.y = 0;
+    if (m_destRect2.y + m_destRect2.h > 480)
+        m_destRect2.y = 480 - m_destRect2.h;
 }
 
 void Game::render() {
     SDL_RenderClear(m_pRenderer);
 
-    // 🔄 CHANGE: 원본 상자와 대상 상자를 모두 지정하여 렌더링
+    // 첫 번째 텍스처 렌더링 (애니메이션 스프라이트)
     SDL_RenderCopy(m_pRenderer, m_pTexture, &m_srcRect, &m_destRect);
+
+    // 🆕 NEW: 두 번째 텍스처 렌더링 (키보드 제어 스프라이트)
+    SDL_RenderCopy(m_pRenderer, m_pTexture2, &m_srcRect2, &m_destRect2);
 
     SDL_RenderPresent(m_pRenderer);
 }
@@ -134,6 +219,12 @@ void Game::clean() {
     if (m_pTexture) {
         SDL_DestroyTexture(m_pTexture);
         m_pTexture = nullptr;
+    }
+
+    // 🆕 NEW: 두 번째 텍스처 정리
+    if (m_pTexture2) {
+        SDL_DestroyTexture(m_pTexture2);
+        m_pTexture2 = nullptr;
     }
 
     if (m_pRenderer) {
@@ -146,6 +237,8 @@ void Game::clean() {
         m_pWindow = nullptr;
     }
 
+    // 🆕 NEW: SDL_Image 종료
+    IMG_Quit();
     SDL_Quit();
 }
 
