@@ -1,10 +1,11 @@
 ﻿#include "Game.h"
 #include <iostream>
 
-// 🔄 CHANGE: 새로운 멤버 변수들 초기화 추가
+// 🔄 CHANGE: 애니메이션 관련 멤버 변수 초기화 추가
 Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr),
 m_pTexture(nullptr), m_frameStart(0), m_frameTime(0),
-m_frameCount(0), m_lastTime(0), m_dstRect{ 0, 0, 0, 0 } {
+m_frameCount(0), m_lastTime(0), m_srcRect{ 0, 0, 0, 0 },
+m_destRect{ 0, 0, 0, 0 }, m_direction(1) {
 }
 
 Game::~Game() {
@@ -36,8 +37,8 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 이미지 로딩 및 텍스처 생성
-    SDL_Surface* tempSurface = SDL_LoadBMP("./assets/rider.bmp");
+    // 🔄 CHANGE: 애니메이션 스프라이트 시트 로딩
+    SDL_Surface* tempSurface = SDL_LoadBMP("./assets/animate.bmp");
     if (!tempSurface) {
         std::cerr << "이미지 로드 실패: " << SDL_GetError() << std::endl;
         SDL_DestroyRenderer(m_pRenderer);
@@ -57,17 +58,11 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 🆕 NEW: 텍스처 크기 및 창 크기 계산
-    int texW = 0, texH = 0;
-    SDL_QueryTexture(m_pTexture, nullptr, nullptr, &texW, &texH);
+    // 🆕 NEW: 원본 상자 설정 (첫 번째 프레임)
+    m_srcRect = { 0, 0, 128, 82 };  // 각 프레임 크기 128x82
 
-    int winW = 0, winH = 0;
-    SDL_GetWindowSize(m_pWindow, &winW, &winH);
-
-    // 🆕 NEW: 텍스처를 중앙에 배치
-    int x = (winW - texW) / 2;
-    int y = (winH - texH) / 2;
-    m_dstRect = { x, y, texW, texH };
+    // 🆕 NEW: 대상 상자 설정 (화면 시작 위치)
+    m_destRect = { 0, 200, 128, 82 };  // 화면 왼쪽에서 시작, y=200 위치
 
     SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
 
@@ -75,7 +70,6 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
     return true;
 }
 
-// 🆕 NEW: 게임 루프 구현
 void Game::gameLoop() {
     m_lastTime = SDL_GetTicks();
 
@@ -112,15 +106,26 @@ void Game::handleEvents() {
     }
 }
 
+// 🔄 CHANGE: 애니메이션 및 이동 처리 추가
 void Game::update() {
-    // 게임 로직 업데이트
+    // 🆕 NEW: 프레임 애니메이션 처리
+    Uint32 ticks = SDL_GetTicks();
+    m_srcRect.x = 128 * ((ticks / 100) % 6);  // 0.1초마다 프레임 전환
+
+    // 🆕 NEW: 좌우 이동 처리
+    m_destRect.x += m_direction;
+
+    // 🆕 NEW: 경계 충돌 및 방향 전환
+    if (m_destRect.x + m_destRect.w > 640 || m_destRect.x < 0) {
+        m_direction = -m_direction;
+    }
 }
 
 void Game::render() {
     SDL_RenderClear(m_pRenderer);
 
-    // 🔄 CHANGE: 텍스처를 중앙에 렌더링
-    SDL_RenderCopy(m_pRenderer, m_pTexture, nullptr, &m_dstRect);
+    // 🔄 CHANGE: 원본 상자와 대상 상자를 모두 지정하여 렌더링
+    SDL_RenderCopy(m_pRenderer, m_pTexture, &m_srcRect, &m_destRect);
 
     SDL_RenderPresent(m_pRenderer);
 }
