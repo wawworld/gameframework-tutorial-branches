@@ -2,7 +2,8 @@
 #define GAME_H
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>  // 🆕 NEW: SDL_Image 헤더 추가
+#include <SDL2/SDL_image.h>
+#include "TextureManager.h"  // 🆕 NEW: TextureManager 헤더 추가
 #include <iostream>
 
 class Game {
@@ -22,12 +23,6 @@ private:
     bool m_bRunning;
     SDL_Window* m_pWindow;
     SDL_Renderer* m_pRenderer;
-    SDL_Texture* m_pTexture;
-
-    // 🆕 NEW: 두 번째 텍스처 관련 멤버 변수
-    SDL_Texture* m_pTexture2;
-    SDL_Rect m_srcRect2;
-    SDL_Rect m_destRect2;
 
     // FPS 관련 멤버 변수
     const int TARGET_FPS = 60;
@@ -37,14 +32,23 @@ private:
     int m_frameCount;
     Uint32 m_lastTime;
 
-    // 애니메이션 관련 멤버 변수
+    // 게임 오브젝트 위치 및 이동
     SDL_Rect m_srcRect;
     SDL_Rect m_destRect;
+    SDL_Rect m_srcRect2;
+    SDL_Rect m_destRect2;
     int m_direction;
-
-    // 🆕 NEW: 키보드 입력 처리 멤버 변수
     int m_velocityX;
     int m_velocityY;
+
+    // 🆕 NEW: 점프 관련 멤버 변수
+    bool m_isJumping;
+    int m_jumpStartY;
+    int m_jumpHeight;
+
+    // 🆕 NEW: 애니메이션 관련 변수
+    int m_currentFrame;
+    Uint32 m_lastFrameTime;
 };
 
 #endif // GAME_H
