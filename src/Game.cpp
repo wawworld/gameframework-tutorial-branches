@@ -1,10 +1,10 @@
 ﻿#include "Game.h"
 #include <iostream>
 
-// 🔄 CHANGE: 게임 객체 포인터 초기화
+// 🔄 CHANGE: 벡터는 자동으로 초기화되므로 별도 초기화 불필요
 Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr),
-m_frameStart(0), m_frameTime(0), m_frameCount(0), m_lastTime(0),
-m_pPlayer(nullptr), m_pEnemy(nullptr) {
+m_frameStart(0), m_frameTime(0), m_frameCount(0), m_lastTime(0) {
+    // std::vector는 기본 생성자에서 자동으로 빈 상태로 초기화됨
 }
 
 Game::~Game() {
@@ -56,9 +56,9 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 🆕 NEW: 게임 객체들 동적 생성
-    m_pPlayer = new Player("animate", 100, 200, 128, 82);
-    m_pEnemy = new Enemy("animate-alpha", 300, 300, 128, 82);
+    // 🔄 CHANGE: 객체 생성 후 벡터에 추가하는 방식으로 변경
+    m_gameObjects.push_back(new Player("animate", 100, 200, 128, 82));
+    m_gameObjects.push_back(new Enemy("animate-alpha", 300, 300, 128, 82));
 
     SDL_SetRenderDrawColor(m_pRenderer, 100, 0, 100, 255);
 
@@ -99,49 +99,33 @@ void Game::handleEvents() {
         if (event.type == SDL_QUIT) {
             m_bRunning = false;
         }
-        // 🔄 CHANGE: 키보드 입력 처리는 Player 클래스에서 담당
     }
 }
 
 void Game::update() {
-    // 🔄 CHANGE: 각 객체의 update() 메서드 호출
-    if (m_pPlayer) {
-        m_pPlayer->update();        // 플레이어 입력 처리 및 위치 업데이트
-    }
-
-    if (m_pEnemy) {
-        m_pEnemy->update();         // 적 자동 이동 업데이트
+    // 🔄 CHANGE: 범위 기반 for문으로 모든 객체 업데이트
+    for (auto& gameObject : m_gameObjects) {
+        gameObject->update();       // 🆕 NEW: 다형성을 통한 메서드 호출
     }
 }
 
 void Game::render() {
     SDL_RenderClear(m_pRenderer);
 
-    // 🔄 CHANGE: 각 객체의 render() 메서드 호출
-    if (m_pPlayer) {
-        m_pPlayer->render(m_pRenderer);
-    }
-
-    if (m_pEnemy) {
-        m_pEnemy->render(m_pRenderer);
+    // 🔄 CHANGE: 모든 게임 객체를 동일한 방식으로 렌더링
+    for (auto& gameObject : m_gameObjects) {
+        gameObject->render(m_pRenderer);    // 🆕 NEW: 다형성 렌더링
     }
 
     SDL_RenderPresent(m_pRenderer);
 }
 
 void Game::clean() {
-    // 🆕 NEW: 게임 객체 메모리 해제
-    if (m_pPlayer) {
-        m_pPlayer->clean();
-        delete m_pPlayer;
-        m_pPlayer = nullptr;
+    // 🔄 CHANGE: 벡터의 모든 객체 메모리 해제
+    for (auto& gameObject : m_gameObjects) {
+        delete gameObject;          // 🆕 NEW: 가상 소멸자를 통한 안전한 해제
     }
-
-    if (m_pEnemy) {
-        m_pEnemy->clean();
-        delete m_pEnemy;
-        m_pEnemy = nullptr;
-    }
+    m_gameObjects.clear();          // 🆕 NEW: 벡터 내용 완전 정리
 
     // TextureManager 정리 및 SDL 종료
     TheTextureManager::Instance()->clearFromTextureMap("animate");

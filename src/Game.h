@@ -3,10 +3,11 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <vector>               // 🆕 NEW: STL vector 헤더 추가
 #include "TextureManager.h"
-#include "GameObject.h"     // 🆕 NEW: GameObject 헤더 추가
-#include "Player.h"         // 🆕 NEW: Player 헤더 추가  
-#include "Enemy.h"          // 🆕 NEW: Enemy 헤더 추가
+#include "GameObject.h"     
+#include "Player.h"         
+#include "Enemy.h"          
 #include <iostream>
 
 class Game {
@@ -35,9 +36,8 @@ private:
     int m_frameCount;
     Uint32 m_lastTime;
 
-    // 🆕 NEW: 게임 객체 포인터들
-    Player* m_pPlayer;              // 플레이어 객체 포인터
-    Enemy* m_pEnemy;                // 적 객체 포인터
+    // 🔄 CHANGE: 개별 포인터에서 벡터로 변경
+    std::vector<GameObject*> m_gameObjects;  // 🆕 NEW: 모든 게임 객체를 담는 컨테이너
 };
 
 #endif // GAME_H
