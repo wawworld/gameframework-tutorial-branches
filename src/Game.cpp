@@ -1,4 +1,7 @@
 ﻿#include "Game.h"
+#include "Player.h"         
+#include "Enemy.h"          
+
 #include <iostream>
 
 // 🆕 NEW: 정적 포인터 초기화 (클래스 외부에서 정의)
@@ -58,9 +61,9 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 게임 객체 생성 및 벡터에 추가
-    m_gameObjects.push_back(new Player("animate", 100, 200, 128, 82));
-    m_gameObjects.push_back(new Enemy("animate-alpha", 300, 300, 128, 82));
+    // 🔄 CHANGE: LoaderParams를 사용한 객체 생성
+    m_gameObjects.push_back(new Player(new LoaderParams(100, 200, 128, 82, "animate")));
+    m_gameObjects.push_back(new Enemy(new LoaderParams(300, 300, 128, 82, "animate-alpha")));
 
     SDL_SetRenderDrawColor(m_pRenderer, 100, 0, 100, 255);
 
@@ -105,7 +108,7 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
-    // 범위 기반 for문으로 모든 객체 업데이트
+    // 🔄 CHANGE: 추상 클래스 포인터를 통한 다형성 활용
     for (auto& gameObject : m_gameObjects) {
         gameObject->update();
     }
@@ -114,7 +117,7 @@ void Game::update() {
 void Game::render() {
     SDL_RenderClear(m_pRenderer);
 
-    // 모든 게임 객체를 동일한 방식으로 렌더링
+    // 🔄 CHANGE: 추상 클래스 포인터를 통한 다형성 활용
     for (auto& gameObject : m_gameObjects) {
         gameObject->render(m_pRenderer);
     }
@@ -123,7 +126,7 @@ void Game::render() {
 }
 
 void Game::clean() {
-    // 벡터의 모든 객체 메모리 해제
+    // 🔄 CHANGE: LoaderParams 메모리 해제 고려
     for (auto& gameObject : m_gameObjects) {
         delete gameObject;
     }
