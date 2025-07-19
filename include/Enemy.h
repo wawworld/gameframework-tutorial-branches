@@ -9,6 +9,9 @@ public:
     virtual ~Enemy() {}
 
     virtual void update(float deltaTime) override;
+
+private:
+    void handleInput();  // 🆕 NEW: 마우스 입력 처리 메서드 추가
 };
 
 #endif // ENEMY_H
