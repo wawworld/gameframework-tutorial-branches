@@ -7,14 +7,13 @@ Player::Player(const LoaderParams* pParams)
 }
 
 void Player::update(float deltaTime) {
-    handleInput(); // 🆕 NEW: 사용자 입력 처리
-    SDLGameObject::update(deltaTime); // 부모 update 함수 호출
+    handleInput();
+    SDLGameObject::update(deltaTime);
 }
 
 void Player::handleInput() {
     InputHandler* inputHandler = InputHandler::Instance();
 
-    // 🆕 NEW: 연속 입력 처리 - 이동
     if (TheInputHandler::Instance()->isKeyDown(SDL_SCANCODE_RIGHT))
     {
         m_velocity.setX(100);
@@ -32,9 +31,17 @@ void Player::handleInput() {
         m_velocity.setY(100);
     }
 
-    // 🆕 NEW: 단일 입력 처리 - 액션
     if (inputHandler->isKeyOneDown(SDL_SCANCODE_SPACE))
     {
         std::cerr << "SPACE" << std::endl;
     }
+}
+
+// 🆕 NEW: 플레이어 충돌 처리 구현
+void Player::onCollision(GameObject* other) {
+    std::cout << "Player collided with object!" << std::endl;
+
+    // 충돌 시 플레이어 이동 중지
+    m_velocity.setX(0);
+    m_velocity.setY(0);
 }

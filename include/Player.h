@@ -2,7 +2,7 @@
 #define PLAYER_H
 
 #include "SDLGameObject.h"
-#include "InputHandler.h"  // 🆕 NEW: InputHandler 헤더 추가
+#include "InputHandler.h"
 
 class Player : public SDLGameObject {
 public:
@@ -11,8 +11,11 @@ public:
 
     virtual void update(float deltaTime) override;
 
+    // 🆕 NEW: 충돌 처리 오버라이드
+    virtual void onCollision(GameObject* other) override;
+
 private:
-    void handleInput();  // 🆕 NEW: 입력 처리 메서드 추가
+    void handleInput();
 };
 
 #endif // PLAYER_H

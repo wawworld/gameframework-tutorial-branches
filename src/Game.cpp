@@ -2,8 +2,7 @@
 #include "Player.h"
 #include "Enemy.h"
 #include "LoaderParams.h"
-#include "InputHandler.h"  // 🆕 NEW: InputHandler 헤더 추가
-
+#include "CollisionManager.h"  // 🆕 NEW: 충돌 관리자 헤더 추가
 #include <iostream>
 
 Game* Game::s_pInstance = nullptr;
@@ -61,9 +60,14 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // LoaderParams를 사용한 객체 생성
-    m_gameObjects.push_back(new Player(new LoaderParams(100, 200, 128, 82, "animate")));
-    m_gameObjects.push_back(new Enemy(new LoaderParams(300, 300, 128, 82, "animate-alpha")));
+    // 🔄 CHANGE: 객체 생성 시 CollisionManager에 등록
+    Player* player = new Player(new LoaderParams(100, 200, 128, 82, "animate"));
+    m_gameObjects.push_back(player);
+    CollisionManager::Instance()->addGameObject(player); // 🆕 NEW: 충돌 관리자에 등록
+
+    Enemy* enemy = new Enemy(new LoaderParams(300, 300, 128, 82, "animate-alpha"));
+    m_gameObjects.push_back(enemy);
+    CollisionManager::Instance()->addGameObject(enemy); // 🆕 NEW: 충돌 관리자에 등록
 
     SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
 
@@ -104,14 +108,17 @@ void Game::gameLoop() {
 }
 
 void Game::handleEvents() {
-    // 🔄 CHANGE: 이벤트 처리를 InputHandler로 위임
     InputHandler::Instance()->update();
 }
 
+// 🔄 CHANGE: 충돌 검사 루프 추가
 void Game::update(float deltaTime) {
     for (auto& gameObject : m_gameObjects) {
         gameObject->update(deltaTime);
     }
+
+    // 🆕 NEW: 충돌 검사 업데이트
+    CollisionManager::Instance()->update();
 }
 
 void Game::render() {
@@ -124,7 +131,11 @@ void Game::render() {
     SDL_RenderPresent(m_pRenderer);
 }
 
+// 🔄 CHANGE: 게임 정리 시 CollisionManager 정리
 void Game::clean() {
+    // 🆕 NEW: CollisionManager 정리
+    CollisionManager::Instance()->clearGameObjects();
+
     for (auto& gameObject : m_gameObjects) {
         delete gameObject;
     }
@@ -133,7 +144,6 @@ void Game::clean() {
     TheTextureManager::Instance()->clearFromTextureMap("animate");
     TheTextureManager::Instance()->clearFromTextureMap("animate-alpha");
 
-    // 🆕 NEW: InputHandler 인스턴스 정리
     if (InputHandler::Instance() != nullptr) {
         InputHandler::Instance()->clean();
         delete InputHandler::Instance();

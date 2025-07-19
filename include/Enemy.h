@@ -10,8 +10,11 @@ public:
 
     virtual void update(float deltaTime) override;
 
+    // 🆕 NEW: 충돌 처리 오버라이드
+    virtual void onCollision(GameObject* other) override;
+
 private:
-    void handleInput();  // 🆕 NEW: 마우스 입력 처리 메서드 추가
+    void handleInput();
 };
 
 #endif // ENEMY_H

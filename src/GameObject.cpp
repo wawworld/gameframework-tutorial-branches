@@ -12,9 +12,13 @@ GameObject::GameObject(const LoaderParams* pParams)
 }
 
 void GameObject::update(float deltaTime) {
-    // 🆕 NEW: 시간 기반 물리 업데이트
     m_velocity += m_acceleration * deltaTime;
     m_position += m_velocity * deltaTime;
+}
+
+// 🆕 NEW: 충돌 처리 기본 구현
+void GameObject::onCollision(GameObject* other) {
+    // 기본적으로 아무것도 하지 않음
 }
 
 void GameObject::setVelocity(int x, int y) {
