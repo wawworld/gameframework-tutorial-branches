@@ -4,31 +4,31 @@
 #include <string>
 #include <SDL2/SDL.h>
 #include "LoaderParams.h"
+#include "Vector2D.h"
 
 class GameObject {
 public:
-    // 🆕 NEW: LoaderParams를 받는 생성자
     GameObject(const LoaderParams* pParams);
-
-    // 🆕 NEW: 가상 소멸자
     virtual ~GameObject() {}
 
-    // 🆕 NEW: 순수 가상 함수들 - 자식 클래스에서 반드시 구현
-    virtual void update() = 0;
+    // 🔄 CHANGE: deltaTime 매개변수 추가
+    virtual void update(float deltaTime);
     virtual void render(SDL_Renderer* pRenderer) = 0;
     virtual void clean() = 0;
 
-    // 🆕 NEW: 공통 유틸리티 함수들
     void setVelocity(int x, int y);
     void setPosition(int x, int y);
     std::string getTextureID() const { return m_textureID; }
 
 protected:
-    // 🆕 NEW: 자식 클래스에서 접근 가능한 멤버들
     std::string m_textureID;
-    int m_x, m_y, m_width, m_height;
-    int m_velocityX, m_velocityY;
+    int m_width, m_height;
     int m_currentFrame, m_currentRow;
+
+    // 🆕 NEW: Vector2D 멤버 변수들
+    Vector2D m_position;
+    Vector2D m_velocity;
+    Vector2D m_acceleration;
 };
 
 #endif // GAMEOBJECT_H

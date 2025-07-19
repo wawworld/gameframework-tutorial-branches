@@ -2,15 +2,14 @@
 #define SDLGAMEOBJECT_H
 
 #include "GameObject.h"
-#include "LoaderParams.h"
+#include "TextureManager.h"
 
 class SDLGameObject : public GameObject {
 public:
     SDLGameObject(const LoaderParams* pParams);
     virtual ~SDLGameObject() {}
 
-    // 🆕 NEW: 순수 가상 함수들의 구현
-    virtual void update() override;
+    virtual void update(float deltaTime) override;
     virtual void render(SDL_Renderer* pRenderer) override;
     virtual void clean() override;
 };

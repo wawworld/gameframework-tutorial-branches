@@ -1,19 +1,17 @@
 ﻿#include "Enemy.h"
 
 Enemy::Enemy(const LoaderParams* pParams)
-    : SDLGameObject(pParams), m_direction(1) {
-    // 🔄 CHANGE: 초기 이동 방향을 오른쪽(1)으로 설정
+    : SDLGameObject(pParams) {
+    // 🆕 NEW: 초기 가속도 설정
+    m_acceleration.setX(50);
 }
 
-void Enemy::update() {
-    // 🔄 CHANGE: 방향에 따른 X축 위치 변경
-    m_x += m_direction;
-
-    // 🔄 CHANGE: 화면 경계에 도달하면 방향을 반전
-    if (m_x + m_width > 640 || m_x < 0) {
-        m_direction = -m_direction;
+void Enemy::update(float deltaTime) {
+    // 🆕 NEW: 벡터 기반 경계 충돌 검사
+    if (m_position.getX() + m_width > 640 || m_position.getX() < 0) {
+        m_acceleration.setX(-m_acceleration.getX());
+        m_velocity.setX(0);
     }
 
-    // 🔄 CHANGE: 상위 클래스의 업데이트 호출
-    SDLGameObject::update();
+    SDLGameObject::update(deltaTime);
 }

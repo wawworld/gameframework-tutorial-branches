@@ -3,33 +3,43 @@
 
 Player::Player(const LoaderParams* pParams)
     : SDLGameObject(pParams) {
-    // Player 특화 초기화가 필요한 경우 여기에 추가
 }
 
 void Player::handleInput() {
     const Uint8* keystate = SDL_GetKeyboardState(nullptr);
 
-    // 🔄 CHANGE: 매 프레임마다 속도 초기화
-    m_velocityX = 0;
-    m_velocityY = 0;
+    const float ACCELERATION_X = 200.0f;
+    const float ACCELERATION_Y = 200.0f;
+    const float DECELERATION_FACTOR = 0.95;
 
-    // 🔄 CHANGE: 키보드 입력에 따른 플레이어 이동
-    if (keystate[SDL_SCANCODE_UP]) {
-        m_velocityY = -1;
-    }
-    else if (keystate[SDL_SCANCODE_DOWN]) {
-        m_velocityY = 1;
-    }
+    // 🆕 NEW: 가속도 초기화
+    m_acceleration.setX(0);
+    m_acceleration.setY(0);
 
+    // 🆕 NEW: 수평 이동 처리
     if (keystate[SDL_SCANCODE_LEFT]) {
-        m_velocityX = -1;
+        m_velocity.setX(-ACCELERATION_X);
     }
     else if (keystate[SDL_SCANCODE_RIGHT]) {
-        m_velocityX = 1;
+        m_velocity.setX(ACCELERATION_X);
+    }
+    else {
+        m_velocity.setX(m_velocity.getX() * DECELERATION_FACTOR);
+    }
+
+    // 🆕 NEW: 수직 이동 처리
+    if (keystate[SDL_SCANCODE_UP]) {
+        m_velocity.setY(-ACCELERATION_Y);
+    }
+    else if (keystate[SDL_SCANCODE_DOWN]) {
+        m_velocity.setY(ACCELERATION_Y);
+    }
+    else {
+        m_velocity.setY(m_velocity.getY() * DECELERATION_FACTOR);
     }
 }
 
-void Player::update() {
-    handleInput();              // 🔄 CHANGE: 입력 처리 먼저 수행
-    SDLGameObject::update();    // 🔄 CHANGE: 상위 클래스 업데이트 호출
+void Player::update(float deltaTime) {
+    handleInput();
+    SDLGameObject::update(deltaTime);
 }

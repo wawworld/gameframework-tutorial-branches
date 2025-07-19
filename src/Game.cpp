@@ -1,15 +1,13 @@
 ﻿#include "Game.h"
 #include "Player.h"         
-#include "Enemy.h"          
+#include "Enemy.h"    
 
 #include <iostream>
 
-// 🆕 NEW: 정적 포인터 초기화 (클래스 외부에서 정의)
 Game* Game::s_pInstance = nullptr;
 
 Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr),
-m_frameStart(0), m_frameTime(0), m_frameCount(0), m_lastTime(0) {
-    // 싱글톤 인스턴스 생성 시 초기화
+m_frameCount(0) {
 }
 
 Game::~Game() {
@@ -61,7 +59,7 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 🔄 CHANGE: LoaderParams를 사용한 객체 생성
+    // LoaderParams를 사용한 객체 생성
     m_gameObjects.push_back(new Player(new LoaderParams(100, 200, 128, 82, "animate")));
     m_gameObjects.push_back(new Enemy(new LoaderParams(300, 300, 128, 82, "animate-alpha")));
 
@@ -72,28 +70,36 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
 }
 
 void Game::gameLoop() {
-    m_lastTime = SDL_GetTicks();
+    using namespace std::chrono;
+
+    auto lastTime = steady_clock::now();
+    auto lastFPSTime = lastTime;
 
     while (running()) {
-        m_frameStart = SDL_GetTicks();
+        auto currentTime = steady_clock::now();
+
+        // 🆕 NEW: deltaTime 계산
+        float deltaTime = duration_cast<duration<float>>(currentTime - lastTime).count();
+        lastTime = currentTime;
 
         handleEvents();
-        update();
+        update(deltaTime);
         render();
 
-        m_frameTime = SDL_GetTicks() - m_frameStart;
         m_frameCount++;
 
-        // 1초마다 FPS 출력
-        if (SDL_GetTicks() - m_lastTime >= 1000) {
-            std::cout << "FPS: " << m_frameCount << std::endl;
+        // 🆕 NEW: 1초마다 FPS 출력
+        if (duration_cast<seconds>(currentTime - lastFPSTime).count() >= 1) {
+            std::cout << "FPS: " << m_frameCount << ":: size " << m_gameObjects.size() << std::endl;
             m_frameCount = 0;
-            m_lastTime = SDL_GetTicks();
+            lastFPSTime = currentTime;
         }
 
-        // 목표 프레임 시간보다 빨리 처리된 경우 대기
-        if (m_frameTime < FRAME_DELAY) {
-            SDL_Delay(FRAME_DELAY - m_frameTime);
+        // 🆕 NEW: 프레임 처리 시간 계산
+        auto frameTime = duration_cast<milliseconds>(steady_clock::now() - currentTime).count();
+
+        if (frameTime < FRAME_DELAY) {
+            std::this_thread::sleep_for(milliseconds(FRAME_DELAY - frameTime));
         }
     }
 }
@@ -107,17 +113,16 @@ void Game::handleEvents() {
     }
 }
 
-void Game::update() {
-    // 🔄 CHANGE: 추상 클래스 포인터를 통한 다형성 활용
+void Game::update(float deltaTime) {
+    // 🔄 CHANGE: deltaTime을 매개변수로 전달
     for (auto& gameObject : m_gameObjects) {
-        gameObject->update();
+        gameObject->update(deltaTime);
     }
 }
 
 void Game::render() {
     SDL_RenderClear(m_pRenderer);
 
-    // 🔄 CHANGE: 추상 클래스 포인터를 통한 다형성 활용
     for (auto& gameObject : m_gameObjects) {
         gameObject->render(m_pRenderer);
     }
@@ -126,13 +131,11 @@ void Game::render() {
 }
 
 void Game::clean() {
-    // 🔄 CHANGE: LoaderParams 메모리 해제 고려
     for (auto& gameObject : m_gameObjects) {
         delete gameObject;
     }
     m_gameObjects.clear();
 
-    // TextureManager 정리 및 SDL 종료
     TheTextureManager::Instance()->clearFromTextureMap("animate");
     TheTextureManager::Instance()->clearFromTextureMap("animate-alpha");
 
