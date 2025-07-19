@@ -39,6 +39,15 @@
     <ClCompile Include="src\SpriteRenderer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="src\MonoBehaviour.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="include\EnemyBehavior.h">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EnemyBehavior.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\main.h">
@@ -66,6 +75,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="include\SpriteRenderer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="include\MonoBehaviour.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

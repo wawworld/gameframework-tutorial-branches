@@ -3,7 +3,7 @@
 #include "SpriteRenderer.h"     // 🆕 NEW: SpriteRenderer 컴포넌트
 #include "TextureManager.h"
 #include "GameTime.h"               // 🆕 NEW: Time 시스템
-
+#include "EnemyBehavior.h"
 #include <iostream>
 
 Game* Game::s_pInstance = nullptr;
@@ -23,7 +23,7 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 🆕 NEW: SDL_image 초기화
+    // SDL_image 초기화
     if (IMG_Init(IMG_INIT_PNG) != IMG_INIT_PNG) {
         std::cerr << "SDL_image 초기화 실패: " << IMG_GetError() << std::endl;
         SDL_Quit();
@@ -50,13 +50,13 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 🆕 NEW: 텍스처 로드
+    // 텍스처 로드
     loadTextures();
 
     // GameObject 시스템 사용
     createGameObjects();
 
-    // 🆕 NEW: 스프라이트 렌더링 테스트
+    // 스프라이트 렌더링 테스트
     testSpriteRendering();
 
     SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
@@ -65,10 +65,9 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
     return true;
 }
 
-// 🆕 NEW: 텍스처 로딩 메서드
 void Game::loadTextures() {
     // 애니메이션 스프라이트 로드 (6열 1행)
-    TextureInfo animateInfo(128, 82, 1, 6);  // 프레임크기, 행, 열
+    TextureInfo animateInfo(128, 82, 1, 6);
     TheTextureManager::Instance()->load("assets/animate.png", "animate",
         m_pRenderer, animateInfo);
 
@@ -78,54 +77,9 @@ void Game::loadTextures() {
         m_pRenderer, alphaInfo);
 }
 
-// 🔄 CHANGE: SpriteRenderer 컴포넌트 활용
 void Game::createGameObjects() {
-    // 🆕 NEW: 애니메이션 플레이어 생성
-    auto player = std::make_shared<GameObject>("AnimatedPlayer");
-
-    // Transform 설정
-    Transform* playerTransform = player->getComponent<Transform>();
-    playerTransform->setPosition(Vector2D(100, 400));
-    playerTransform->setScale(Vector2D(2.0f, 2.0f));
-
-    // 🆕 NEW: SpriteRenderer 컴포넌트 추가
-    SpriteRenderer* playerRenderer = player->addComponent<SpriteRenderer>();
-    playerRenderer->setTextureID("animate");
-    playerRenderer->setAnimated(true);
-    playerRenderer->setAnimationSpeed(8.0f);  // 8프레임/초
-    playerRenderer->setColor({ 255, 255, 255, 255 });
-
-    // 🆕 NEW: 정적 적 오브젝트 생성
-    auto enemy = std::make_shared<GameObject>("StaticEnemy");
-
-    Transform* enemyTransform = enemy->getComponent<Transform>();
-    enemyTransform->setPosition(Vector2D(300, 300));
-    enemyTransform->setRotation(45.0f);
-
-    // 🆕 NEW: 정적 스프라이트 렌더러
-    SpriteRenderer* enemyRenderer = enemy->addComponent<SpriteRenderer>();
-    enemyRenderer->setTextureID("animate-alpha");
-    enemyRenderer->setAnimated(false);
-    enemyRenderer->setCurrentFrame(0, 2);  // 특정 프레임 고정
-    enemyRenderer->setAlpha(128);          // 50% 투명도
-
-    // 🆕 NEW: 회전하는 스프라이트 생성
-    auto rotatingSprite = std::make_shared<GameObject>("RotatingSprite");
-
-    Transform* rotatingTransform = rotatingSprite->getComponent<Transform>();
-    rotatingTransform->setPosition(Vector2D(500, 200));
-    rotatingTransform->setScale(Vector2D(1.5f, 1.5f));
-
-    SpriteRenderer* rotatingRenderer = rotatingSprite->addComponent<SpriteRenderer>();
-    rotatingRenderer->setTextureID("animate");
-    rotatingRenderer->setAnimated(true);
-    rotatingRenderer->setAnimationSpeed(4.0f);
-    rotatingRenderer->setFlip(SDL_FLIP_HORIZONTAL);
-
-    // 게임 오브젝트 등록
-    m_gameObjects.push_back(player);
-    m_gameObjects.push_back(enemy);
-    m_gameObjects.push_back(rotatingSprite);
+    createPlayer();
+    createEnemies();  // 🆕 NEW: 적 생성 호출
 
     // 모든 게임 오브젝트 초기화
     for (auto& gameObject : m_gameObjects) {
@@ -133,9 +87,65 @@ void Game::createGameObjects() {
     }
 }
 
-// 🆕 NEW: 스프라이트 렌더링 시스템 테스트
+void Game::createPlayer() {
+    auto player = std::make_shared<GameObject>("AnimatedPlayer");
+
+    Transform* playerTransform = player->getComponent<Transform>();
+    playerTransform->setPosition(Vector2D(100, 400));
+    playerTransform->setScale(Vector2D(2.0f, 2.0f));
+
+    SpriteRenderer* playerRenderer = player->addComponent<SpriteRenderer>();
+    playerRenderer->setTextureID("animate");
+    playerRenderer->setAnimated(true);
+    playerRenderer->setAnimationSpeed(8.0f);
+    playerRenderer->setColor({ 255, 255, 255, 255 });
+
+    m_gameObjects.push_back(player);
+}
+
+void Game::createEnemies() {
+    // 첫 번째 적 생성
+    auto enemy1 = std::make_shared<GameObject>("Enemy1");
+
+    Transform* enemy1Transform = enemy1->getComponent<Transform>();
+    enemy1Transform->setPosition(Vector2D(300, 300));
+    enemy1Transform->setScale(Vector2D(1.5f, 1.5f));
+
+    SpriteRenderer* enemy1Renderer = enemy1->addComponent<SpriteRenderer>();
+    enemy1Renderer->setTextureID("animate-alpha");
+    enemy1Renderer->setAnimated(true);
+    enemy1Renderer->setAnimationSpeed(4.0f);
+    enemy1Renderer->setAlpha(200);
+
+    // 🆕 NEW: EnemyBehavior 컴포넌트 추가
+    EnemyBehavior* enemy1Behavior = enemy1->addComponent<EnemyBehavior>();
+    enemy1Behavior->setPatrolRange(150.0f);
+    enemy1Behavior->setMoveSpeed(80.0f);
+
+    // 두 번째 적 생성
+    auto enemy2 = std::make_shared<GameObject>("Enemy2");
+
+    Transform* enemy2Transform = enemy2->getComponent<Transform>();
+    enemy2Transform->setPosition(Vector2D(500, 200));
+    enemy2Transform->setScale(Vector2D(1.2f, 1.2f));
+
+    SpriteRenderer* enemy2Renderer = enemy2->addComponent<SpriteRenderer>();
+    enemy2Renderer->setTextureID("animate");
+    enemy2Renderer->setAnimated(true);
+    enemy2Renderer->setAnimationSpeed(6.0f);
+    enemy2Renderer->setColor({ 255, 200, 200, 255 });
+
+    EnemyBehavior* enemy2Behavior = enemy2->addComponent<EnemyBehavior>();
+    enemy2Behavior->setPatrolRange(250.0f);
+    enemy2Behavior->setMoveSpeed(120.0f);
+
+    // 게임 오브젝트 등록
+    m_gameObjects.push_back(enemy1);
+    m_gameObjects.push_back(enemy2);
+}
+
 void Game::testSpriteRendering() {
-    std::cout << "=== 스프라이트 렌더링 시스템 테스트 ===" << std::endl;
+    std::cout << "=== 컴포넌트 기반 행동 제어 시스템 테스트 ===" << std::endl;
 
     for (auto& gameObject : m_gameObjects) {
         std::cout << "GameObject: " << gameObject->getName() << std::endl;
@@ -155,11 +165,16 @@ void Game::testSpriteRendering() {
         if (renderer) {
             std::cout << "  SpriteRenderer - 컴포넌트 활성화됨" << std::endl;
         }
+
+        // 🆕 NEW: EnemyBehavior 컴포넌트 확인
+        EnemyBehavior* behavior = gameObject->getComponent<EnemyBehavior>();
+        if (behavior) {
+            std::cout << "  EnemyBehavior - 적 AI 컴포넌트 활성화됨" << std::endl;
+        }
     }
-    std::cout << "=========================================" << std::endl;
+    std::cout << "================================================" << std::endl;
 }
 
-// 🔄 CHANGE: Time 시스템 통합
 void Game::gameLoop() {
     using namespace std::chrono;
 
@@ -169,11 +184,11 @@ void Game::gameLoop() {
     while (running()) {
         auto currentTime = steady_clock::now();
 
-        // 🆕 NEW: Time 시스템 업데이트
+        // Time 시스템 업데이트
         TheTime::Instance()->update();
 
         handleEvents();
-        update();  // deltaTime 매개변수 제거
+        update();
         render();
 
         m_frameCount++;
@@ -194,7 +209,6 @@ void Game::gameLoop() {
     }
 }
 
-// 🔄 CHANGE: 키보드 이벤트 추가
 void Game::handleEvents() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -202,28 +216,19 @@ void Game::handleEvents() {
             m_bRunning = false;
         }
 
-        // 🆕 NEW: 키보드 테스트 (스페이스바로 회전 테스트)
+        // 키보드 테스트 (스페이스바로 적 행동 일시정지)
         if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE) {
-            if (!m_gameObjects.empty()) {
-                Transform* transform = m_gameObjects[1]->getComponent<Transform>();
-                if (transform) {
-                    transform->rotate(45.0f);
+            for (auto& gameObject : m_gameObjects) {
+                EnemyBehavior* behavior = gameObject->getComponent<EnemyBehavior>();
+                if (behavior) {
+                    behavior->setActive(!behavior->isActive());
                 }
             }
         }
     }
 }
 
-// 🔄 CHANGE: 지속적인 회전 애니메이션 추가
 void Game::update() {
-    // 🆕 NEW: 지속적인 회전 애니메이션 (세 번째 오브젝트)
-    if (m_gameObjects.size() > 2) {
-        Transform* rotatingTransform = m_gameObjects[2]->getComponent<Transform>();
-        if (rotatingTransform) {
-            rotatingTransform->rotate(30.0f * TheTime::Instance()->getDeltaTime());
-        }
-    }
-
     for (auto& gameObject : m_gameObjects) {
         gameObject->update();
         gameObject->fixedUpdate();
@@ -240,7 +245,6 @@ void Game::render() {
     SDL_RenderPresent(m_pRenderer);
 }
 
-// 🔄 CHANGE: SDL_image 정리 추가
 void Game::clean() {
     for (auto& gameObject : m_gameObjects) {
         gameObject->destroy();
@@ -260,7 +264,7 @@ void Game::clean() {
         m_pWindow = nullptr;
     }
 
-    IMG_Quit();  // 🆕 NEW: SDL_image 정리
+    IMG_Quit();
     SDL_Quit();
 }
 
