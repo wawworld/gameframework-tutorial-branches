@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
 {
     Game* g_game = new Game();
 
-    if (g_game->init("Texture Manager", WINDOW_POS_X, WINDOW_POS_Y,
+    if (g_game->init("Inheritance-based Game Object System", WINDOW_POS_X, WINDOW_POS_Y,
         WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN)) {
         g_game->gameLoop();
     }

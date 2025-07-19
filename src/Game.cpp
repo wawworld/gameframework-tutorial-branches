@@ -1,14 +1,10 @@
 ﻿#include "Game.h"
 #include <iostream>
 
-// 🔄 CHANGE: 점프 및 애니메이션 관련 초기화 추가
+// 🔄 CHANGE: 게임 객체 포인터 초기화
 Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr),
 m_frameStart(0), m_frameTime(0), m_frameCount(0), m_lastTime(0),
-m_srcRect{ 0, 0, 0, 0 }, m_destRect{ 0, 0, 0, 0 },
-m_srcRect2{ 0, 0, 0, 0 }, m_destRect2{ 0, 0, 0, 0 },
-m_direction(1), m_velocityX(0), m_velocityY(0),
-m_isJumping(false), m_jumpStartY(200), m_jumpHeight(100),
-m_currentFrame(0), m_lastFrameTime(0) {
+m_pPlayer(nullptr), m_pEnemy(nullptr) {
 }
 
 Game::~Game() {
@@ -49,7 +45,7 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 🔄 CHANGE: TextureManager를 사용한 텍스처 로딩
+    // TextureManager를 사용한 텍스처 로딩
     if (!TheTextureManager::Instance()->load("./assets/animate.png", "animate", m_pRenderer)) {
         std::cerr << "텍스처 로드 실패: animate.png" << std::endl;
         return false;
@@ -60,12 +56,11 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 🔄 CHANGE: 개별 텍스처 변수 대신 destRect만 설정
-    m_destRect = { 100, 200, 128, 82 };        // 플레이어 위치
-    m_destRect2 = { 300, 300, 128, 82 };       // 두 번째 오브젝트 위치
-    m_jumpStartY = m_destRect.y;               // 점프 기준점 설정
+    // 🆕 NEW: 게임 객체들 동적 생성
+    m_pPlayer = new Player("animate", 100, 200, 128, 82);
+    m_pEnemy = new Enemy("animate-alpha", 300, 300, 128, 82);
 
-    SDL_SetRenderDrawColor(m_pRenderer, 0, 100, 0, 255);
+    SDL_SetRenderDrawColor(m_pRenderer, 100, 0, 100, 255);
 
     m_bRunning = true;
     return true;
@@ -104,95 +99,51 @@ void Game::handleEvents() {
         if (event.type == SDL_QUIT) {
             m_bRunning = false;
         }
-
-        if (event.type == SDL_KEYDOWN) {
-            switch (event.key.keysym.sym) {
-            case SDLK_LEFT:
-                m_velocityX = -1;
-                break;
-            case SDLK_RIGHT:
-                m_velocityX = 1;
-                break;
-                // 🆕 NEW: 스페이스바로 점프 시작
-            case SDLK_SPACE:
-                if (!m_isJumping) {
-                    m_isJumping = true;
-                    m_jumpStartY = m_destRect.y;  // 현재 위치를 기준점으로 설정
-                }
-                break;
-            }
-        }
-
-        if (event.type == SDL_KEYUP) {
-            switch (event.key.keysym.sym) {
-            case SDLK_LEFT:
-            case SDLK_RIGHT:
-                m_velocityX = 0;
-                break;
-            }
-        }
+        // 🔄 CHANGE: 키보드 입력 처리는 Player 클래스에서 담당
     }
 }
 
 void Game::update() {
-    Uint32 currentTime = SDL_GetTicks();
-
-    // 🔄 CHANGE: 애니메이션 프레임 업데이트 (시간 기반)
-    if (currentTime - m_lastFrameTime > 100) {  // 100ms마다 프레임 변경
-        m_currentFrame = (m_currentFrame + 1) % 6;  // 0~5 프레임 순환
-        m_lastFrameTime = currentTime;
+    // 🔄 CHANGE: 각 객체의 update() 메서드 호출
+    if (m_pPlayer) {
+        m_pPlayer->update();        // 플레이어 입력 처리 및 위치 업데이트
     }
 
-    // 기존 좌우 이동 처리
-    m_destRect.x += m_velocityX;
-    if (m_destRect.x < 0) m_destRect.x = 0;
-    if (m_destRect.x + m_destRect.w > 640) m_destRect.x = 640 - m_destRect.w;
-
-    // 🆕 NEW: 점프 물리 처리
-    if (m_isJumping) {
-        m_destRect.y -= 5;  // 위로 이동 (점프 상승)
-        // 최대 높이에 도달하면 하강 시작
-        if (m_destRect.y <= m_jumpStartY - m_jumpHeight) {
-            m_isJumping = false;
-        }
-    }
-    else if (m_destRect.y < m_jumpStartY) {
-        m_destRect.y += 5;  // 하강 처리
-        // 원래 위치에 도달하면 착지
-        if (m_destRect.y >= m_jumpStartY) {
-            m_destRect.y = m_jumpStartY;
-        }
-    }
-
-    // 두 번째 오브젝트 자동 이동 (기존 로직)
-    m_destRect2.x += m_direction;
-    if (m_destRect2.x + m_destRect2.w > 640 || m_destRect2.x < 0) {
-        m_direction = -m_direction;
+    if (m_pEnemy) {
+        m_pEnemy->update();         // 적 자동 이동 업데이트
     }
 }
 
 void Game::render() {
     SDL_RenderClear(m_pRenderer);
 
-    // 🔄 CHANGE: TextureManager를 사용한 애니메이션 렌더링
-    TheTextureManager::Instance()->drawFrame("animate",
-        m_destRect.x, m_destRect.y,
-        128, 82,
-        1, m_currentFrame,
-        m_pRenderer,
-        (m_velocityX < 0) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+    // 🔄 CHANGE: 각 객체의 render() 메서드 호출
+    if (m_pPlayer) {
+        m_pPlayer->render(m_pRenderer);
+    }
 
-    // 🔄 CHANGE: TextureManager를 사용한 일반 텍스처 렌더링
-    TheTextureManager::Instance()->draw("animate-alpha",
-        m_destRect2.x, m_destRect2.y,
-        128, 82,
-        m_pRenderer);
+    if (m_pEnemy) {
+        m_pEnemy->render(m_pRenderer);
+    }
 
     SDL_RenderPresent(m_pRenderer);
 }
 
 void Game::clean() {
-    // 🔄 CHANGE: TextureManager를 사용한 텍스처 정리
+    // 🆕 NEW: 게임 객체 메모리 해제
+    if (m_pPlayer) {
+        m_pPlayer->clean();
+        delete m_pPlayer;
+        m_pPlayer = nullptr;
+    }
+
+    if (m_pEnemy) {
+        m_pEnemy->clean();
+        delete m_pEnemy;
+        m_pEnemy = nullptr;
+    }
+
+    // TextureManager 정리 및 SDL 종료
     TheTextureManager::Instance()->clearFromTextureMap("animate");
     TheTextureManager::Instance()->clearFromTextureMap("animate-alpha");
 

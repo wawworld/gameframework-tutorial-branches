@@ -3,7 +3,10 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include "TextureManager.h"  // 🆕 NEW: TextureManager 헤더 추가
+#include "TextureManager.h"
+#include "GameObject.h"     // 🆕 NEW: GameObject 헤더 추가
+#include "Player.h"         // 🆕 NEW: Player 헤더 추가  
+#include "Enemy.h"          // 🆕 NEW: Enemy 헤더 추가
 #include <iostream>
 
 class Game {
@@ -32,23 +35,9 @@ private:
     int m_frameCount;
     Uint32 m_lastTime;
 
-    // 게임 오브젝트 위치 및 이동
-    SDL_Rect m_srcRect;
-    SDL_Rect m_destRect;
-    SDL_Rect m_srcRect2;
-    SDL_Rect m_destRect2;
-    int m_direction;
-    int m_velocityX;
-    int m_velocityY;
-
-    // 🆕 NEW: 점프 관련 멤버 변수
-    bool m_isJumping;
-    int m_jumpStartY;
-    int m_jumpHeight;
-
-    // 🆕 NEW: 애니메이션 관련 변수
-    int m_currentFrame;
-    Uint32 m_lastFrameTime;
+    // 🆕 NEW: 게임 객체 포인터들
+    Player* m_pPlayer;              // 플레이어 객체 포인터
+    Enemy* m_pEnemy;                // 적 객체 포인터
 };
 
 #endif // GAME_H
