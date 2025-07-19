@@ -1,6 +1,8 @@
 ﻿#include "Game.h"
-#include "Player.h"         
-#include "Enemy.h"    
+#include "Player.h"
+#include "Enemy.h"
+#include "LoaderParams.h"
+#include "InputHandler.h"  // 🆕 NEW: InputHandler 헤더 추가
 
 #include <iostream>
 
@@ -63,7 +65,7 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
     m_gameObjects.push_back(new Player(new LoaderParams(100, 200, 128, 82, "animate")));
     m_gameObjects.push_back(new Enemy(new LoaderParams(300, 300, 128, 82, "animate-alpha")));
 
-    SDL_SetRenderDrawColor(m_pRenderer, 100, 0, 100, 255);
+    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
 
     m_bRunning = true;
     return true;
@@ -78,7 +80,6 @@ void Game::gameLoop() {
     while (running()) {
         auto currentTime = steady_clock::now();
 
-        // 🆕 NEW: deltaTime 계산
         float deltaTime = duration_cast<duration<float>>(currentTime - lastTime).count();
         lastTime = currentTime;
 
@@ -88,14 +89,12 @@ void Game::gameLoop() {
 
         m_frameCount++;
 
-        // 🆕 NEW: 1초마다 FPS 출력
         if (duration_cast<seconds>(currentTime - lastFPSTime).count() >= 1) {
             std::cout << "FPS: " << m_frameCount << ":: size " << m_gameObjects.size() << std::endl;
             m_frameCount = 0;
             lastFPSTime = currentTime;
         }
 
-        // 🆕 NEW: 프레임 처리 시간 계산
         auto frameTime = duration_cast<milliseconds>(steady_clock::now() - currentTime).count();
 
         if (frameTime < FRAME_DELAY) {
@@ -105,16 +104,11 @@ void Game::gameLoop() {
 }
 
 void Game::handleEvents() {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT) {
-            m_bRunning = false;
-        }
-    }
+    // 🔄 CHANGE: 이벤트 처리를 InputHandler로 위임
+    InputHandler::Instance()->update();
 }
 
 void Game::update(float deltaTime) {
-    // 🔄 CHANGE: deltaTime을 매개변수로 전달
     for (auto& gameObject : m_gameObjects) {
         gameObject->update(deltaTime);
     }
@@ -138,6 +132,12 @@ void Game::clean() {
 
     TheTextureManager::Instance()->clearFromTextureMap("animate");
     TheTextureManager::Instance()->clearFromTextureMap("animate-alpha");
+
+    // 🆕 NEW: InputHandler 인스턴스 정리
+    if (InputHandler::Instance() != nullptr) {
+        InputHandler::Instance()->clean();
+        delete InputHandler::Instance();
+    }
 
     if (m_pRenderer) {
         SDL_DestroyRenderer(m_pRenderer);

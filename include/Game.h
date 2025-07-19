@@ -22,10 +22,11 @@ public:
     bool init(const char* title, int xpos, int ypos, int width, int height, int flags);
     void gameLoop();
     void handleEvents();
-    void update(float deltaTime);  // 🔄 CHANGE: deltaTime 매개변수 추가
+    void update(float deltaTime);
     void render();
     void clean();
     bool running() const;
+    void quit() { m_bRunning = false; }  // 🆕 NEW: 종료 메서드 추가
 
 private:
     Game();
@@ -43,7 +44,7 @@ private:
     const int TARGET_FPS = 60;
     const int FRAME_DELAY = 1000 / TARGET_FPS;
 
-    int m_frameCount;  // 🆕 NEW: 프레임 카운터
+    int m_frameCount;
 
     std::vector<GameObject*> m_gameObjects;
 };
