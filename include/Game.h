@@ -26,7 +26,7 @@ public:
     void render();
     void clean();
     bool running() const;
-    void quit() { m_bRunning = false; }  // 🆕 NEW: 종료 메서드 추가
+    void quit() { m_bRunning = false; }
 
 private:
     Game();

@@ -1,8 +1,8 @@
 ﻿#include "Game.h"
-#include "Player.h"
-#include "Enemy.h"
-#include "LoaderParams.h"
-#include "CollisionManager.h"  // 🆕 NEW: 충돌 관리자 헤더 추가
+#include "Cannon.h"        // 🆕 NEW: Cannon 클래스 헤더 추가
+#include "Target.h"        // 🆕 NEW: Target 클래스 헤더 추가
+#include "CollisionManager.h"
+#include "InputHandler.h"
 #include <iostream>
 
 Game* Game::s_pInstance = nullptr;
@@ -16,20 +16,17 @@ Game::~Game() {
 }
 
 bool Game::init(const char* title, int xpos, int ypos, int width, int height, int flags) {
-    // SDL 초기화
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         std::cerr << "SDL 초기화 실패: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    // SDL_Image 초기화
     if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
         std::cerr << "SDL_image 초기화 실패: " << IMG_GetError() << std::endl;
         SDL_Quit();
         return false;
     }
 
-    // 윈도우 생성
     m_pWindow = SDL_CreateWindow(title, xpos, ypos, width, height, flags);
     if (m_pWindow == nullptr) {
         std::cerr << "윈도우 생성 실패: " << SDL_GetError() << std::endl;
@@ -38,7 +35,6 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 렌더러 생성
     m_pRenderer = SDL_CreateRenderer(m_pWindow, -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (m_pRenderer == nullptr) {
@@ -49,25 +45,16 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // TextureManager를 사용한 텍스처 로딩
-    if (!TheTextureManager::Instance()->load("./assets/animate.png", "animate", m_pRenderer)) {
-        std::cerr << "텍스처 로드 실패: animate.png" << std::endl;
-        return false;
+    // Cannon 객체 생성
+    Cannon* cannon = new Cannon(new LoaderParams(100, 460, 50, 20, "Cannon"));
+    m_gameObjects.push_back(cannon);
+
+    // Target 객체 생성
+    for (int i = 0; i < 5; ++i) {
+        Target* target = new Target(new LoaderParams(50 + i * 100, 50, 50, 50, "Target"));
+        m_gameObjects.push_back(target);
+        CollisionManager::Instance()->addGameObject(target);
     }
-
-    if (!TheTextureManager::Instance()->load("./assets/animate-alpha.png", "animate-alpha", m_pRenderer)) {
-        std::cerr << "텍스처 로드 실패: animate-alpha.png" << std::endl;
-        return false;
-    }
-
-    // 🔄 CHANGE: 객체 생성 시 CollisionManager에 등록
-    Player* player = new Player(new LoaderParams(100, 200, 128, 82, "animate"));
-    m_gameObjects.push_back(player);
-    CollisionManager::Instance()->addGameObject(player); // 🆕 NEW: 충돌 관리자에 등록
-
-    Enemy* enemy = new Enemy(new LoaderParams(300, 300, 128, 82, "animate-alpha"));
-    m_gameObjects.push_back(enemy);
-    CollisionManager::Instance()->addGameObject(enemy); // 🆕 NEW: 충돌 관리자에 등록
 
     SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
 
@@ -111,17 +98,16 @@ void Game::handleEvents() {
     InputHandler::Instance()->update();
 }
 
-// 🔄 CHANGE: 충돌 검사 루프 추가
 void Game::update(float deltaTime) {
     for (auto& gameObject : m_gameObjects) {
         gameObject->update(deltaTime);
     }
 
-    // 🆕 NEW: 충돌 검사 업데이트
     CollisionManager::Instance()->update();
 }
 
 void Game::render() {
+    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
     SDL_RenderClear(m_pRenderer);
 
     for (auto& gameObject : m_gameObjects) {
@@ -131,18 +117,13 @@ void Game::render() {
     SDL_RenderPresent(m_pRenderer);
 }
 
-// 🔄 CHANGE: 게임 정리 시 CollisionManager 정리
 void Game::clean() {
-    // 🆕 NEW: CollisionManager 정리
     CollisionManager::Instance()->clearGameObjects();
 
     for (auto& gameObject : m_gameObjects) {
         delete gameObject;
     }
     m_gameObjects.clear();
-
-    TheTextureManager::Instance()->clearFromTextureMap("animate");
-    TheTextureManager::Instance()->clearFromTextureMap("animate-alpha");
 
     if (InputHandler::Instance() != nullptr) {
         InputHandler::Instance()->clean();

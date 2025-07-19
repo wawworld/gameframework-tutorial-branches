@@ -142,6 +142,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Cannon.cpp" />
+    <ClCompile Include="src\CannonBall.cpp" />
     <ClCompile Include="src\CollisionManager.cpp" />
     <ClCompile Include="src\Enemy.cpp" />
     <ClCompile Include="src\Game.cpp" />
@@ -150,10 +152,13 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\SDLGameObject.cpp" />
+    <ClCompile Include="src\Target.cpp" />
     <ClCompile Include="src\TextureManager.cpp" />
     <ClCompile Include="src\Vector2D.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Cannon.h" />
+    <ClInclude Include="include\CannonBall.h" />
     <ClInclude Include="include\CollisionManager.h" />
     <ClInclude Include="include\InputHandler.h" />
     <ClInclude Include="include\main.h" />
@@ -163,6 +168,7 @@
     <ClInclude Include="include\LoaderParams.h" />
     <ClInclude Include="include\Player.h" />
     <ClInclude Include="include\SDLGameObject.h" />
+    <ClInclude Include="include\Target.h" />
     <ClInclude Include="include\TextureManager.h" />
     <ClInclude Include="include\Vector2D.h" />
   </ItemGroup>
