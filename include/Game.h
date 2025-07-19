@@ -2,12 +2,12 @@
 #define GAME_H
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 #include <vector>
+#include <memory>
 #include <chrono>
 #include <thread>
-#include "TextureManager.h"
 #include "GameObject.h"
+#include "Transform.h"
 #include <iostream>
 
 class Game {
@@ -26,7 +26,6 @@ public:
     void render();
     void clean();
     bool running() const;
-    void quit() { m_bRunning = false; }
 
 private:
     Game();
@@ -46,7 +45,10 @@ private:
 
     int m_frameCount;
 
-    std::vector<GameObject*> m_gameObjects;
+    std::vector<std::shared_ptr<GameObject>> m_gameObjects;
+
+    void createGameObjects();
+    void testComponentSystem();
 };
 
 typedef Game TheGame;

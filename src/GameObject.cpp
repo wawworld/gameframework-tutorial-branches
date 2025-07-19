@@ -1,32 +1,77 @@
 ﻿#include "GameObject.h"
 
-GameObject::GameObject(const LoaderParams* pParams)
-    : m_textureID(pParams->getTextureID()),
-    m_position(pParams->getX(), pParams->getY()),
-    m_width(pParams->getWidth()),
-    m_height(pParams->getHeight()),
-    m_velocity(0, 0),
-    m_acceleration(0, 0),
-    m_currentFrame(0),
-    m_currentRow(1) {
+GameObject::GameObject(const std::string& name)
+    : m_name(name)
+    , m_active(true) {
+    // Transform 컴포넌트 자동 생성 및 캐싱
+    m_transform = addComponent<Transform>();
 }
 
-void GameObject::update(float deltaTime) {
-    m_velocity += m_acceleration * deltaTime;
-    m_position += m_velocity * deltaTime;
+GameObject::~GameObject() {
+    destroy();
+
+    // 모든 컴포넌트 제거
+    for (auto component : m_components) {
+        if (component) {
+            delete component;
+        }
+    }
+    m_components.clear();
 }
 
-// 🆕 NEW: 충돌 처리 기본 구현
-void GameObject::onCollision(GameObject* other) {
-    // 기본적으로 아무것도 하지 않음
+void GameObject::init() {
+    for (auto component : m_components) {
+        if (component && component->isActive()) {
+            component->init();
+        }
+    }
 }
 
-void GameObject::setVelocity(int x, int y) {
-    m_velocity.setX(x);
-    m_velocity.setY(y);
+void GameObject::update() {
+    if (!m_active) return;
+
+    for (auto component : m_components) {
+        if (component && component->isActive()) {
+            component->update();
+        }
+    }
 }
 
-void GameObject::setPosition(int x, int y) {
-    m_position.setX(x);
-    m_position.setY(y);
+void GameObject::fixedUpdate() {
+    if (!m_active) return;
+
+    for (auto component : m_components) {
+        if (component && component->isActive()) {
+            component->fixedUpdate();
+        }
+    }
+}
+
+void GameObject::render(SDL_Renderer* renderer) {
+    if (!m_active) return;
+
+    for (auto component : m_components) {
+        if (component && component->isActive()) {
+            component->render(renderer);
+        }
+    }
+}
+
+void GameObject::destroy() {
+    for (auto component : m_components) {
+        if (component) {
+            component->destroy();
+        }
+    }
+}
+
+void GameObject::setActive(bool active) {
+    m_active = active;
+
+    // 모든 컴포넌트의 활성화 상태도 변경
+    for (auto component : m_components) {
+        if (component) {
+            component->setActive(active);
+        }
+    }
 }

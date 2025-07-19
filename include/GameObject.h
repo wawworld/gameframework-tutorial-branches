@@ -1,40 +1,81 @@
 ﻿#ifndef GAMEOBJECT_H
 #define GAMEOBJECT_H
 
-#include <string>
 #include <SDL2/SDL.h>
-#include "LoaderParams.h"
-#include "Vector2D.h"
+#include <string>
+#include <vector>
+#include <memory>
+#include <algorithm>
+#include "Component.h"
+#include "Transform.h"
 
 class GameObject {
 public:
-    GameObject(const LoaderParams* pParams);
-    virtual ~GameObject() {}
+    GameObject(const std::string& name = "GameObject");
+    virtual ~GameObject();
 
-    virtual void update(float deltaTime);
-    virtual void render(SDL_Renderer* pRenderer) = 0;
-    virtual void clean() = 0;
+    // 기본 게임 루프 메서드
+    void init();
+    void update();
+    void fixedUpdate();
+    void render(SDL_Renderer* renderer);
+    void destroy();
 
-    // 🆕 NEW: 충돌 처리 가상 함수
-    virtual void onCollision(GameObject* other);
+    // 컴포넌트 관리
+    template<typename T>
+    T* addComponent() {
+        static_assert(std::is_base_of<Component, T>::value,
+            "T must inherit from Component");
 
-    void setVelocity(int x, int y);
-    void setPosition(int x, int y);
-    std::string getTextureID() const { return m_textureID; }
+        T* component = new T();
+        component->setGameObject(this);
+        m_components.push_back(component);
+        component->init();
 
-    // 🆕 NEW: 충돌 검사용 접근자 메서드
-    Vector2D getPosition() const { return m_position; }
-    int getWidth() const { return m_width; }
-    int getHeight() const { return m_height; }
+        return component;
+    }
 
-protected:
-    std::string m_textureID;
-    int m_width, m_height;
-    int m_currentFrame, m_currentRow;
+    template<typename T>
+    T* getComponent() {
+        for (auto* component : m_components) {
+            if (T* castComponent = dynamic_cast<T*>(component)) {
+                return castComponent;
+            }
+        }
+        return nullptr;
+    }
 
-    Vector2D m_position;
-    Vector2D m_velocity;
-    Vector2D m_acceleration;
+    template<typename T>
+    void removeComponent() {
+        m_components.erase(
+            std::remove_if(m_components.begin(), m_components.end(),
+                [](Component* component) {
+                    if (dynamic_cast<T*>(component)) {
+                        component->destroy();
+                        delete component;
+                        return true;
+                    }
+                    return false;
+                }
+            ),
+            m_components.end()
+        );
+    }
+
+    // 게터/세터
+    const std::string& getName() const { return m_name; }
+    void setName(const std::string& name) { m_name = name; }
+
+    bool isActive() const { return m_active; }
+    void setActive(bool active);
+
+    Transform* getTransform() { return m_transform; }
+
+private:
+    std::string m_name;
+    bool m_active{ true };
+    std::vector<Component*> m_components;
+    Transform* m_transform{ nullptr };  // Transform 컴포넌트 캐싱
 };
 
 #endif // GAMEOBJECT_H

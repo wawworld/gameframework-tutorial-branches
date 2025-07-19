@@ -1,8 +1,4 @@
 ﻿#include "Game.h"
-#include "Cannon.h"        // 🆕 NEW: Cannon 클래스 헤더 추가
-#include "Target.h"        // 🆕 NEW: Target 클래스 헤더 추가
-#include "CollisionManager.h"
-#include "InputHandler.h"
 #include <iostream>
 
 Game* Game::s_pInstance = nullptr;
@@ -16,50 +12,94 @@ Game::~Game() {
 }
 
 bool Game::init(const char* title, int xpos, int ypos, int width, int height, int flags) {
+    // SDL 초기화
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         std::cerr << "SDL 초기화 실패: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) {
-        std::cerr << "SDL_image 초기화 실패: " << IMG_GetError() << std::endl;
-        SDL_Quit();
-        return false;
-    }
-
+    // 윈도우 생성
     m_pWindow = SDL_CreateWindow(title, xpos, ypos, width, height, flags);
     if (m_pWindow == nullptr) {
         std::cerr << "윈도우 생성 실패: " << SDL_GetError() << std::endl;
-        IMG_Quit();
         SDL_Quit();
         return false;
     }
 
+    // 렌더러 생성
     m_pRenderer = SDL_CreateRenderer(m_pWindow, -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (m_pRenderer == nullptr) {
         std::cerr << "렌더러 생성 실패: " << SDL_GetError() << std::endl;
         SDL_DestroyWindow(m_pWindow);
-        IMG_Quit();
         SDL_Quit();
         return false;
     }
 
-    // Cannon 객체 생성
-    Cannon* cannon = new Cannon(new LoaderParams(100, 460, 50, 20, "Cannon"));
-    m_gameObjects.push_back(cannon);
+    // GameObject 시스템 사용
+    createGameObjects();
 
-    // Target 객체 생성
-    for (int i = 0; i < 5; ++i) {
-        Target* target = new Target(new LoaderParams(50 + i * 100, 50, 50, 50, "Target"));
-        m_gameObjects.push_back(target);
-        CollisionManager::Instance()->addGameObject(target);
-    }
+    // 컴포넌트 시스템 테스트
+    testComponentSystem();
 
     SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
 
     m_bRunning = true;
     return true;
+}
+
+void Game::createGameObjects() {
+    // 플레이어 게임 오브젝트 생성
+    auto player = std::make_shared<GameObject>("Player");
+
+    // Transform 컴포넌트를 통한 위치 설정
+    Transform* playerTransform = player->getComponent<Transform>();
+    playerTransform->setPosition(Vector2D(100, 400));
+    playerTransform->setScale(Vector2D(2.0f, 2.0f));
+
+    // 적 게임 오브젝트 생성
+    auto enemy = std::make_shared<GameObject>("Enemy");
+
+    Transform* enemyTransform = enemy->getComponent<Transform>();
+    enemyTransform->setPosition(Vector2D(300, 300));
+    enemyTransform->setRotation(45.0f);
+
+    // 게임 오브젝트 컨테이너에 추가
+    m_gameObjects.push_back(player);
+    m_gameObjects.push_back(enemy);
+
+    // 모든 게임 오브젝트 초기화
+    for (auto& gameObject : m_gameObjects) {
+        gameObject->init();
+    }
+}
+
+void Game::testComponentSystem() {
+    std::cout << "=== 컴포넌트 시스템 테스트 ===" << std::endl;
+
+    for (auto& gameObject : m_gameObjects) {
+        Transform* transform = gameObject->getComponent<Transform>();
+        if (transform) {
+            Vector2D pos = transform->getPosition();
+            Vector2D scale = transform->getScale();
+            float rotation = transform->getRotation();
+
+            std::cout << gameObject->getName() << " - "
+                << "위치: (" << pos.getX() << ", " << pos.getY() << "), "
+                << "크기: (" << scale.getX() << ", " << scale.getY() << "), "
+                << "회전: " << rotation << "도" << std::endl;
+
+            // 테스트: 위치 이동
+            transform->translate(Vector2D(10, 5));
+            transform->rotate(15.0f);
+
+            Vector2D newPos = transform->getPosition();
+            float newRotation = transform->getRotation();
+            std::cout << "  → 이동 후 위치: (" << newPos.getX() << ", " << newPos.getY()
+                << "), 회전: " << newRotation << "도" << std::endl;
+        }
+    }
+    std::cout << "==============================" << std::endl;
 }
 
 void Game::gameLoop() {
@@ -81,7 +121,7 @@ void Game::gameLoop() {
         m_frameCount++;
 
         if (duration_cast<seconds>(currentTime - lastFPSTime).count() >= 1) {
-            std::cout << "FPS: " << m_frameCount << ":: size " << m_gameObjects.size() << std::endl;
+            std::cout << "FPS: " << m_frameCount << " | GameObjects: " << m_gameObjects.size() << std::endl;
             m_frameCount = 0;
             lastFPSTime = currentTime;
         }
@@ -95,19 +135,22 @@ void Game::gameLoop() {
 }
 
 void Game::handleEvents() {
-    InputHandler::Instance()->update();
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            m_bRunning = false;
+        }
+    }
 }
 
 void Game::update(float deltaTime) {
     for (auto& gameObject : m_gameObjects) {
-        gameObject->update(deltaTime);
+        gameObject->update();
+        gameObject->fixedUpdate();
     }
-
-    CollisionManager::Instance()->update();
 }
 
 void Game::render() {
-    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
     SDL_RenderClear(m_pRenderer);
 
     for (auto& gameObject : m_gameObjects) {
@@ -118,17 +161,10 @@ void Game::render() {
 }
 
 void Game::clean() {
-    CollisionManager::Instance()->clearGameObjects();
-
     for (auto& gameObject : m_gameObjects) {
-        delete gameObject;
+        gameObject->destroy();
     }
     m_gameObjects.clear();
-
-    if (InputHandler::Instance() != nullptr) {
-        InputHandler::Instance()->clean();
-        delete InputHandler::Instance();
-    }
 
     if (m_pRenderer) {
         SDL_DestroyRenderer(m_pRenderer);
@@ -140,7 +176,6 @@ void Game::clean() {
         m_pWindow = nullptr;
     }
 
-    IMG_Quit();
     SDL_Quit();
 }
 
