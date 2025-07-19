@@ -7,9 +7,21 @@
 #include <string>
 #include <iostream>
 
+struct TextureInfo {
+    int frameWidth;
+    int frameHeight;
+    int rows;
+    int columns;
+    int totalFrames;
+
+    TextureInfo(int fw = 0, int fh = 0, int r = 1, int c = 1)
+        : frameWidth(fw), frameHeight(fh), rows(r), columns(c) {
+        totalFrames = rows * columns;
+    }
+};
+
 class TextureManager {
 public:
-    // 🆕 NEW: 싱글톤 인스턴스 접근 함수
     static TextureManager* Instance() {
         if (s_pInstance == nullptr) {
             s_pInstance = new TextureManager();
@@ -17,23 +29,25 @@ public:
         return s_pInstance;
     }
 
-    // 🆕 NEW: 텍스처 관리 함수들
-    bool load(std::string fileName, std::string id, SDL_Renderer* pRenderer);
+    bool load(const std::string& fileName, const std::string& id,
+        SDL_Renderer* pRenderer, const TextureInfo& info = TextureInfo());
+
     void draw(std::string id, int x, int y, int width, int height, SDL_Renderer* pRenderer, SDL_RendererFlip flip = SDL_FLIP_NONE);
     void drawFrame(std::string id, int x, int y, int width, int height, int currentRow, int currentFrame, SDL_Renderer* pRenderer, SDL_RendererFlip flip = SDL_FLIP_NONE);
     void clearFromTextureMap(std::string id);
 
+    SDL_Texture* getTexture(const std::string& id);
+    const TextureInfo* getTextureInfo(const std::string& id);
+
 private:
-    // 🆕 NEW: 싱글톤 패턴 구현
     TextureManager() {}
     ~TextureManager() {}
     static TextureManager* s_pInstance;
 
-    // 🆕 NEW: 텍스처 저장 컨테이너
     std::map<std::string, SDL_Texture*> m_textureMap;
+    std::map<std::string, TextureInfo> m_textureInfoMap;
 };
 
-// 🆕 NEW: 편의성을 위한 매크로 정의
 typedef TextureManager TheTextureManager;
 
 #endif // TEXTUREMANAGER_H

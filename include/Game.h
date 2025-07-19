@@ -2,12 +2,13 @@
 #define GAME_H
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>  // 🆕 NEW: SDL_image 지원
 #include <vector>
 #include <memory>
 #include <chrono>
 #include <thread>
 #include "GameObject.h"
-#include "Transform.h"
+
 #include <iostream>
 
 class Game {
@@ -22,7 +23,7 @@ public:
     bool init(const char* title, int xpos, int ypos, int width, int height, int flags);
     void gameLoop();
     void handleEvents();
-    void update(float deltaTime);
+    void update();  // 🔄 CHANGE: deltaTime 매개변수 제거
     void render();
     void clean();
     bool running() const;
@@ -48,7 +49,8 @@ private:
     std::vector<std::shared_ptr<GameObject>> m_gameObjects;
 
     void createGameObjects();
-    void testComponentSystem();
+    void loadTextures();            // 🆕 NEW: 텍스처 로딩 분리
+    void testSpriteRendering();     // 🆕 NEW: 스프라이트 렌더링 테스트
 };
 
 typedef Game TheGame;
