@@ -1,26 +1,18 @@
 ﻿#include "Game.h"
-#include <iostream>
 
-// 상수 선언
-const int WINDOW_POS_X = 100;
-const int WINDOW_POS_Y = 100;
-const int WINDOW_WIDTH = 640;
-const int WINDOW_HEIGHT = 480;
-
-int main(int argc, char* argv[])
-{
-    Game* g_game = new Game();
-
-    if (g_game->init("Polymorphism-based Game Object Management", WINDOW_POS_X, WINDOW_POS_Y,
-        WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN)) {
-        g_game->gameLoop();
+int main(int argc, char* argv[]) {
+    // TheGame::Instance()를 통한 싱글톤 접근
+    if (TheGame::Instance()->init("Game Window", 100, 100, 800, 600, SDL_WINDOW_SHOWN)) {
+        // 동일한 인스턴스를 통한 게임 루프 실행
+        TheGame::Instance()->gameLoop();
     }
     else {
         std::cerr << "게임 초기화 실패." << std::endl;
-        delete g_game;
         return 1;
     }
 
-    delete g_game;
+    // 리소스 정리도 동일한 인스턴스 사용
+    TheGame::Instance()->clean();
+
     return 0;
 }

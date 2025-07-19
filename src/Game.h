@@ -3,7 +3,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include <vector>               // 🆕 NEW: STL vector 헤더 추가
+#include <vector>
 #include "TextureManager.h"
 #include "GameObject.h"     
 #include "Player.h"         
@@ -12,8 +12,13 @@
 
 class Game {
 public:
-    Game();
-    ~Game();
+    // 🆕 NEW: 싱글톤 패턴을 위한 정적 인스턴스 접근 메서드
+    static Game* Instance() {
+        if (s_pInstance == nullptr) {
+            s_pInstance = new Game();       // 지연 초기화
+        }
+        return s_pInstance;
+    }
 
     bool init(const char* title, int xpos, int ypos, int width, int height, int flags);
     void gameLoop();
@@ -24,11 +29,21 @@ public:
     bool running() const;
 
 private:
+    // 🔄 CHANGE: 생성자와 소멸자를 private으로 변경
+    Game();
+    ~Game();
+
+    // 🆕 NEW: 복사 생성자와 대입 연산자 삭제 (C++11 이상)
+    Game(const Game&) = delete;
+    Game& operator=(const Game&) = delete;
+
+    // 🆕 NEW: 정적 포인터 선언
+    static Game* s_pInstance;
+
     bool m_bRunning;
     SDL_Window* m_pWindow;
     SDL_Renderer* m_pRenderer;
 
-    // FPS 관련 멤버 변수
     const int TARGET_FPS = 60;
     const int FRAME_DELAY = 1000 / TARGET_FPS;
     Uint32 m_frameStart;
@@ -36,8 +51,10 @@ private:
     int m_frameCount;
     Uint32 m_lastTime;
 
-    // 🔄 CHANGE: 개별 포인터에서 벡터로 변경
-    std::vector<GameObject*> m_gameObjects;  // 🆕 NEW: 모든 게임 객체를 담는 컨테이너
+    std::vector<GameObject*> m_gameObjects;
 };
+
+// 🆕 NEW: Game 클래스에 대한 별칭 정의
+typedef Game TheGame;
 
 #endif // GAME_H

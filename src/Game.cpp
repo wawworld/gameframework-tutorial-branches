@@ -1,10 +1,12 @@
 ﻿#include "Game.h"
 #include <iostream>
 
-// 🔄 CHANGE: 벡터는 자동으로 초기화되므로 별도 초기화 불필요
+// 🆕 NEW: 정적 포인터 초기화 (클래스 외부에서 정의)
+Game* Game::s_pInstance = nullptr;
+
 Game::Game() : m_bRunning(false), m_pWindow(nullptr), m_pRenderer(nullptr),
 m_frameStart(0), m_frameTime(0), m_frameCount(0), m_lastTime(0) {
-    // std::vector는 기본 생성자에서 자동으로 빈 상태로 초기화됨
+    // 싱글톤 인스턴스 생성 시 초기화
 }
 
 Game::~Game() {
@@ -56,7 +58,7 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 🔄 CHANGE: 객체 생성 후 벡터에 추가하는 방식으로 변경
+    // 게임 객체 생성 및 벡터에 추가
     m_gameObjects.push_back(new Player("animate", 100, 200, 128, 82));
     m_gameObjects.push_back(new Enemy("animate-alpha", 300, 300, 128, 82));
 
@@ -103,29 +105,29 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
-    // 🔄 CHANGE: 범위 기반 for문으로 모든 객체 업데이트
+    // 범위 기반 for문으로 모든 객체 업데이트
     for (auto& gameObject : m_gameObjects) {
-        gameObject->update();       // 🆕 NEW: 다형성을 통한 메서드 호출
+        gameObject->update();
     }
 }
 
 void Game::render() {
     SDL_RenderClear(m_pRenderer);
 
-    // 🔄 CHANGE: 모든 게임 객체를 동일한 방식으로 렌더링
+    // 모든 게임 객체를 동일한 방식으로 렌더링
     for (auto& gameObject : m_gameObjects) {
-        gameObject->render(m_pRenderer);    // 🆕 NEW: 다형성 렌더링
+        gameObject->render(m_pRenderer);
     }
 
     SDL_RenderPresent(m_pRenderer);
 }
 
 void Game::clean() {
-    // 🔄 CHANGE: 벡터의 모든 객체 메모리 해제
+    // 벡터의 모든 객체 메모리 해제
     for (auto& gameObject : m_gameObjects) {
-        delete gameObject;          // 🆕 NEW: 가상 소멸자를 통한 안전한 해제
+        delete gameObject;
     }
-    m_gameObjects.clear();          // 🆕 NEW: 벡터 내용 완전 정리
+    m_gameObjects.clear();
 
     // TextureManager 정리 및 SDL 종료
     TheTextureManager::Instance()->clearFromTextureMap("animate");
