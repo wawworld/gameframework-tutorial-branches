@@ -144,6 +144,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="include\EnemyBehavior.h" />
+    <ClCompile Include="src\Collider.cpp" />
+    <ClCompile Include="src\CollisionManager.cpp" />
     <ClCompile Include="src\EnemyBehavior.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\GameObject.cpp" />
@@ -156,6 +158,8 @@
     <ClCompile Include="src\Vector2D.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Collider.h" />
+    <ClInclude Include="include\CollisionManager.h" />
     <ClInclude Include="include\Component.h" />
     <ClInclude Include="include\main.h" />
     <ClInclude Include="include\Game.h" />

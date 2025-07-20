@@ -1,42 +1,51 @@
-#ifndef MONOBEHAVIOUR_H
+ï»¿#ifndef MONOBEHAVIOUR_H
 #define MONOBEHAVIOUR_H
 
 #include "GameObject.h"
 #include "Component.h"
 #include "Transform.h"
 
+// ğŸ”„ CHANGE: ì¶©ëŒ ì´ë²¤íŠ¸ë¥¼ ìœ„í•œ ì „ë°© ì„ ì–¸
+struct Collision;
+
 class MonoBehaviour : public Component {
 public:
-    // Component ÀÎÅÍÆäÀÌ½º ±¸Çö
+    // Component ì¸í„°í˜ì´ìŠ¤ êµ¬í˜„
     void init() override final;
     void update() override final;
     void fixedUpdate() override final;
     void render(SDL_Renderer* renderer) override;
     void destroy() override final;
 
-    // MonoBehaviour °¡»ó ÇÔ¼öµé
+    // MonoBehaviour ê°€ìƒ í•¨ìˆ˜ë“¤
     virtual void Awake() {}
     virtual void Start() {}
     virtual void Update() {}
     virtual void FixedUpdate() {}
     virtual void OnDestroy() {}
 
-    // »óÅÂ º¯°æ °ü¸®
+    // ğŸ†• NEW: ë¬¼ë¦¬ì  ì¶©ëŒ ì´ë²¤íŠ¸
+    virtual void onCollisionEnter(const Collision& collision) {}
+    virtual void onCollisionStay(const Collision& collision) {}
+    virtual void onCollisionExit(const Collision& collision) {}
+
+    // ğŸ†• NEW: íŠ¸ë¦¬ê±° ì¶©ëŒ ì´ë²¤íŠ¸
+    virtual void onTriggerEnter(const Collision& collision) {}
+    virtual void onTriggerStay(const Collision& collision) {}
+    virtual void onTriggerExit(const Collision& collision) {}
+
+    // ìƒíƒœ ë³€ê²½ ê´€ë¦¬
     void setActive(bool active);
     virtual void OnEnable() {}
     virtual void OnDisable() {}
 
-    // À¯Æ¿¸®Æ¼ ÇÔ¼öµé
+    // ìœ í‹¸ë¦¬í‹° í•¨ìˆ˜ë“¤
     Transform* getTransform() const { return m_transform; }
 
     template<typename T>
     T* getComponent() {
-        if (auto gameObj = getGameObject()) {
-            return gameObj->template getComponent<T>();
-        }
-        return nullptr;
+        return getGameObject()->template getComponent<T>();
     }
-
 
 private:
     Transform* m_transform = nullptr;

@@ -1,4 +1,4 @@
-#include "EnemyBehavior.h"
+ï»¿#include "EnemyBehavior.h"
 #include "GameTime.h"
 #include <iostream>
 
@@ -11,20 +11,18 @@ EnemyBehavior::EnemyBehavior()
     , m_moveSpeed(100.0f)
     , m_facingRight(true)
 {
-    // »ı¼ºÀÚ¿¡¼­ ¸â¹ö º¯¼öµé ¸í½ÃÀû ÃÊ±âÈ­
+    // ìƒì„±ìì—ì„œ ë©¤ë²„ ë³€ìˆ˜ë“¤ ëª…ì‹œì  ì´ˆê¸°í™”
 }
 
 EnemyBehavior::~EnemyBehavior()
 {
-    // ¾ÈÀüÇÑ ¼Ò¸êÀÚ - Æ÷ÀÎÅÍ ÂüÁ¶ Á¤¸®
+    // ì•ˆì „í•œ ì†Œë©¸ì - í¬ì¸í„° ì°¸ì¡° ì •ë¦¬
     m_spriteRenderer = nullptr;
 }
 void EnemyBehavior::Awake()
 {
-    // ÇÊ¿äÇÑ ÄÄÆ÷³ÍÆ® ¾ò±â
     m_spriteRenderer = getComponent<SpriteRenderer>();
-    if (!m_spriteRenderer)
-    {
+    if (!m_spriteRenderer) {
         std::cerr << "SpriteRenderer not found on Enemy" << std::endl;
         return;
     }
@@ -32,8 +30,8 @@ void EnemyBehavior::Awake()
 
 void EnemyBehavior::Start()
 {
-    // ½ÃÀÛ À§Ä¡ ÀúÀå
     m_startPosition = getTransform()->getPosition();
+    m_originalMoveSpeed = m_moveSpeed; // ğŸ†• NEW: ì›ë˜ ì†ë„ ì €ì¥
 }
 
 void EnemyBehavior::Update()
@@ -46,29 +44,97 @@ void EnemyBehavior::FixedUpdate()
     updateMovement();
 }
 
+// ğŸ†• NEW: ì¶©ëŒ ì´ë²¤íŠ¸ êµ¬í˜„
+void EnemyBehavior::onCollisionEnter(const Collision& collision)
+{
+    Collider* otherCollider = collision.other->getComponent<Collider>();
+    if (otherCollider && otherCollider->getLayer() == CollisionLayer::Player)
+    {
+        std::cout << "Enemy detected player entry!" << std::endl;
+
+        m_hasDetectedPlayer = true;
+        m_moveSpeed *= 0.5f; // ì†ë„ ê°ì†Œ
+
+        // í”Œë ˆì´ì–´ ë°©í–¥ìœ¼ë¡œ íšŒì „
+        Vector2D playerPos = collision.other->getTransform()->getPosition();
+        Vector2D myPos = getTransform()->getPosition();
+        Vector2D direction = (playerPos - myPos);
+        direction.normalize();
+        m_currentDirection = direction;
+    }
+}
+
+void EnemyBehavior::onCollisionStay(const Collision& collision)
+{
+    Collider* otherCollider = collision.other->getComponent<Collider>();
+    if (otherCollider && otherCollider->getLayer() == CollisionLayer::Player)
+    {
+        std::cout << "Enemy engaging player!" << std::endl;
+
+        // ì§€ì†ì ì¸ í”Œë ˆì´ì–´ ì¶”ì 
+        Vector2D playerPos = collision.other->getTransform()->getPosition();
+        Vector2D myPos = getTransform()->getPosition();
+        Vector2D direction = (playerPos - myPos);
+        direction.normalize();
+
+        // í”Œë ˆì´ì–´ë¥¼ í–¥í•´ ì²œì²œíˆ ì´ë™
+        Vector2D velocity = direction * (m_moveSpeed * 0.3f);
+        Vector2D newPos = myPos + (velocity * TheTime::getDeltaTime());
+        getTransform()->setPosition(newPos);
+    }
+}
+
+void EnemyBehavior::onCollisionExit(const Collision& collision)
+{
+    Collider* otherCollider = collision.other->getComponent<Collider>();
+    if (otherCollider && otherCollider->getLayer() == CollisionLayer::Player)
+    {
+        std::cout << "Enemy lost sight of player!" << std::endl;
+
+        // í”Œë ˆì´ì–´ë¥¼ ë†“ì³¤ì„ ë•Œ ì›ë˜ í–‰ë™ìœ¼ë¡œ ë³µê·€
+        m_hasDetectedPlayer = false;
+        m_moveSpeed = m_originalMoveSpeed; // ì›ë˜ ì†ë„ ë³µêµ¬
+
+        // ì ì‹œ ë©ˆì¶˜ í›„ ìˆœì°° ì¬ê°œ
+        m_pauseTimer = 2.0f; // 2ì´ˆê°„ ì¼ì‹œì •ì§€
+    }
+}
+
 void EnemyBehavior::updateAnimation()
 {
     if (!m_spriteRenderer)
         return;
 
-    // ¾Ö´Ï¸ŞÀÌ¼ÇÀº ÀÌ¹Ì setAnimated(true)·Î ¼³Á¤µÇ¾î ÀÚµ¿À¸·Î Àç»ıµÊ
-    // ÇÊ¿äÇÑ °æ¿ì ¿©±â¿¡ Ãß°¡ ¾Ö´Ï¸ŞÀÌ¼Ç ·ÎÁ÷ ±¸Çö
+    // ì• ë‹ˆë©”ì´ì…˜ì€ ì´ë¯¸ setAnimated(true)ë¡œ ì„¤ì •ë˜ì–´ ìë™ìœ¼ë¡œ ì¬ìƒë¨
 }
 
 void EnemyBehavior::updateMovement()
 {
+    // ì¼ì‹œì •ì§€ ì²˜ë¦¬
+    if (m_pauseTimer > 0.0f)
+    {
+        m_pauseTimer -= TheTime::getDeltaTime();
+        return;
+    }
+
+    // í”Œë ˆì´ì–´ ê°ì§€ ìƒíƒœì— ë”°ë¥¸ ë¶„ê¸°
+    if (m_hasDetectedPlayer)
+    {
+        // í”Œë ˆì´ì–´ê°€ ê°ì§€ëœ ìƒíƒœì—ì„œëŠ” ì¶©ëŒ ì²˜ë¦¬ì—ì„œ ì´ë™ ë‹´ë‹¹
+        return;
+    }
+
+    // ê¸°ì¡´ ìˆœì°° ë¡œì§
     Vector2D currentPos = getTransform()->getPosition();
     float leftBound = m_startPosition.getX() - m_patrolRange;
     float rightBound = m_startPosition.getX() + m_patrolRange;
 
-    // °æ°è¿¡ µµ´ŞÇÏ¸é ¹æÇâ ÀüÈ¯
     if (currentPos.getX() <= leftBound || currentPos.getX() >= rightBound)
     {
         m_currentDirection.setX(-m_currentDirection.getX());
         flip();
     }
 
-    // ½Ã°£ ±â¹İ ÀÌµ¿ °è»ê
     Vector2D velocity = m_currentDirection * m_moveSpeed;
     Vector2D newPos = currentPos + (velocity * TheTime::getDeltaTime());
     getTransform()->setPosition(newPos);

@@ -1,30 +1,31 @@
-#ifndef COLLISIONMANAGER_H
-#define COLLISIONMANAGER_H
+#ifndef COLLISION_MANAGER_H
+#define COLLISION_MANAGER_H
 
+#include "Collider.h"
 #include <vector>
-#include "GameObject.h"
 
 class CollisionManager {
 public:
-    static CollisionManager* Instance() {
-        if (s_pInstance == nullptr) {
-            s_pInstance = new CollisionManager();
-        }
-        return s_pInstance;
-    }
+    static CollisionManager* Instance();
+    static void Release();
 
-    void addGameObject(GameObject* pGameObject);
-    void removeGameObject(GameObject* pGameObject);
-    void clearGameObjects();
-    bool checkCollision(GameObject* p1, GameObject* p2);
+    void addCollider(Collider* collider);
+    void removeCollider(Collider* collider);
     void update();
 
-private:
-    CollisionManager() {}
-    ~CollisionManager() {}
+    void setDebugDraw(bool debug) { m_debugDraw = debug; }
+    void render(SDL_Renderer* renderer);
 
-    static CollisionManager* s_pInstance;
-    std::vector<GameObject*> m_gameObjects;
+private:
+    CollisionManager() = default;
+    static CollisionManager* s_instance;
+
+    std::vector<Collider*> m_colliders;
+    bool m_debugDraw{ false };
+
+    void checkCollisions();
+    bool shouldCollide(Collider* a, Collider* b);
+    void renderCollisionInfo(SDL_Renderer* renderer);
 };
 
-#endif // COLLISIONMANAGER_H
+#endif // COLLISION_MANAGER_H

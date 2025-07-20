@@ -4,6 +4,9 @@
 #include "TextureManager.h"
 #include "GameTime.h"               // 🆕 NEW: Time 시스템
 #include "EnemyBehavior.h"
+#include "Collider.h"              // 🆕 NEW: 충돌체 헤더 추가
+#include "CollisionManager.h"   
+
 #include <iostream>
 
 Game* Game::s_pInstance = nullptr;
@@ -50,28 +53,23 @@ bool Game::init(const char* title, int xpos, int ypos, int width, int height, in
         return false;
     }
 
-    // 텍스처 로드
     loadTextures();
-
-    // GameObject 시스템 사용
     createGameObjects();
-
-    // 스프라이트 렌더링 테스트
     testSpriteRendering();
 
-    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
+    // 🆕 NEW: 충돌 시스템 초기화
+    CollisionManager::Instance()->setDebugDraw(true);
 
+    SDL_SetRenderDrawColor(m_pRenderer, 0, 0, 0, 255);
     m_bRunning = true;
     return true;
 }
 
 void Game::loadTextures() {
-    // 애니메이션 스프라이트 로드 (6열 1행)
     TextureInfo animateInfo(128, 82, 1, 6);
     TheTextureManager::Instance()->load("assets/animate.png", "animate",
         m_pRenderer, animateInfo);
 
-    // 알파 스프라이트 로드 (6열 1행)
     TextureInfo alphaInfo(128, 82, 1, 6);
     TheTextureManager::Instance()->load("assets/animate-alpha.png", "animate-alpha",
         m_pRenderer, alphaInfo);
@@ -79,7 +77,7 @@ void Game::loadTextures() {
 
 void Game::createGameObjects() {
     createPlayer();
-    createEnemies();  // 🆕 NEW: 적 생성 호출
+    createEnemies();
 
     // 모든 게임 오브젝트 초기화
     for (auto& gameObject : m_gameObjects) {
@@ -91,7 +89,7 @@ void Game::createPlayer() {
     auto player = std::make_shared<GameObject>("AnimatedPlayer");
 
     Transform* playerTransform = player->getComponent<Transform>();
-    playerTransform->setPosition(Vector2D(100, 400));
+    playerTransform->setPosition(Vector2D(100, 300));
     playerTransform->setScale(Vector2D(2.0f, 2.0f));
 
     SpriteRenderer* playerRenderer = player->addComponent<SpriteRenderer>();
@@ -100,11 +98,18 @@ void Game::createPlayer() {
     playerRenderer->setAnimationSpeed(8.0f);
     playerRenderer->setColor({ 255, 255, 255, 255 });
 
+    // 🆕 NEW: 플레이어 충돌체 추가
+    BoxCollider* playerCollider = player->addComponent<BoxCollider>();
+    playerCollider->setSize(Vector2D(50, 60));
+    playerCollider->setOffset(Vector2D(0, 0));
+    playerCollider->setLayer(CollisionLayer::Player);
+    playerCollider->setTrigger(false);
+
     m_gameObjects.push_back(player);
 }
 
 void Game::createEnemies() {
-    // 첫 번째 적 생성
+    // 첫 번째 적 생성 (BoxCollider)
     auto enemy1 = std::make_shared<GameObject>("Enemy1");
 
     Transform* enemy1Transform = enemy1->getComponent<Transform>();
@@ -117,16 +122,22 @@ void Game::createEnemies() {
     enemy1Renderer->setAnimationSpeed(4.0f);
     enemy1Renderer->setAlpha(200);
 
-    // 🆕 NEW: EnemyBehavior 컴포넌트 추가
     EnemyBehavior* enemy1Behavior = enemy1->addComponent<EnemyBehavior>();
     enemy1Behavior->setPatrolRange(150.0f);
     enemy1Behavior->setMoveSpeed(80.0f);
 
-    // 두 번째 적 생성
+    // 🆕 NEW: 적 충돌체 추가
+    BoxCollider* enemy1Collider = enemy1->addComponent<BoxCollider>();
+    enemy1Collider->setSize(Vector2D(45, 55));
+    enemy1Collider->setOffset(Vector2D(0, 5));
+    enemy1Collider->setLayer(CollisionLayer::Enemy);
+    enemy1Collider->setTrigger(false);
+
+    // 두 번째 적 생성 (CircleCollider)
     auto enemy2 = std::make_shared<GameObject>("Enemy2");
 
     Transform* enemy2Transform = enemy2->getComponent<Transform>();
-    enemy2Transform->setPosition(Vector2D(500, 200));
+    enemy2Transform->setPosition(Vector2D(500, 300));
     enemy2Transform->setScale(Vector2D(1.2f, 1.2f));
 
     SpriteRenderer* enemy2Renderer = enemy2->addComponent<SpriteRenderer>();
@@ -139,13 +150,19 @@ void Game::createEnemies() {
     enemy2Behavior->setPatrolRange(250.0f);
     enemy2Behavior->setMoveSpeed(120.0f);
 
-    // 게임 오브젝트 등록
+    // 🆕 NEW: 원형 충돌체 사용
+    CircleCollider* enemy2Collider = enemy2->addComponent<CircleCollider>();
+    enemy2Collider->setRadius(30.0f);
+    enemy2Collider->setOffset(Vector2D(0, 0));
+    enemy2Collider->setLayer(CollisionLayer::Enemy);
+    enemy2Collider->setTrigger(false);
+
     m_gameObjects.push_back(enemy1);
     m_gameObjects.push_back(enemy2);
 }
 
 void Game::testSpriteRendering() {
-    std::cout << "=== 컴포넌트 기반 행동 제어 시스템 테스트 ===" << std::endl;
+    std::cout << "=== 컴포넌트 기반 충돌 처리 시스템 테스트 ===" << std::endl;
 
     for (auto& gameObject : m_gameObjects) {
         std::cout << "GameObject: " << gameObject->getName() << std::endl;
@@ -166,12 +183,30 @@ void Game::testSpriteRendering() {
             std::cout << "  SpriteRenderer - 컴포넌트 활성화됨" << std::endl;
         }
 
-        // 🆕 NEW: EnemyBehavior 컴포넌트 확인
         EnemyBehavior* behavior = gameObject->getComponent<EnemyBehavior>();
         if (behavior) {
             std::cout << "  EnemyBehavior - 적 AI 컴포넌트 활성화됨" << std::endl;
         }
+
+        // 🆕 NEW: 충돌체 정보
+        BoxCollider* boxCollider = gameObject->getComponent<BoxCollider>();
+        if (boxCollider) {
+            const SDL_Rect& bounds = boxCollider->getBounds();
+            std::cout << "  BoxCollider - 영역: (" << bounds.x << ", " << bounds.y
+                << ", " << bounds.w << ", " << bounds.h << ")" << std::endl;
+        }
+
+        CircleCollider* circleCollider = gameObject->getComponent<CircleCollider>();
+        if (circleCollider) {
+            std::cout << "  CircleCollider - 반지름: " << circleCollider->getRadius() << std::endl;
+        }
     }
+
+    std::cout << "================================================" << std::endl;
+    std::cout << "조작법:" << std::endl;
+    std::cout << "  SPACE - 적 행동 일시정지/재개" << std::endl;
+    std::cout << "  D     - 충돌체 디버그 렌더링 토글" << std::endl;
+    std::cout << "  R     - 게임 오브젝트 위치 리셋" << std::endl;
     std::cout << "================================================" << std::endl;
 }
 
@@ -184,7 +219,6 @@ void Game::gameLoop() {
     while (running()) {
         auto currentTime = steady_clock::now();
 
-        // Time 시스템 업데이트
         TheTime::Instance()->update();
 
         handleEvents();
@@ -216,16 +250,50 @@ void Game::handleEvents() {
             m_bRunning = false;
         }
 
-        // 키보드 테스트 (스페이스바로 적 행동 일시정지)
-        if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE) {
-            for (auto& gameObject : m_gameObjects) {
-                EnemyBehavior* behavior = gameObject->getComponent<EnemyBehavior>();
-                if (behavior) {
-                    behavior->setActive(!behavior->isActive());
+        if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+            case SDLK_SPACE:
+                // 🆕 NEW: 스페이스바로 적 행동 일시정지 토글
+                for (auto& gameObject : m_gameObjects) {
+                    EnemyBehavior* behavior = gameObject->getComponent<EnemyBehavior>();
+                    if (behavior) {
+                        behavior->setActive(!behavior->isActive());
+                    }
                 }
+                break;
+
+            case SDLK_d:
+                // 🆕 NEW: 'D' 키로 디버그 렌더링 토글
+            {
+                static bool debugMode = true;
+                debugMode = !debugMode;
+                CollisionManager::Instance()->setDebugDraw(debugMode);
+                std::cout << "Debug rendering: " << (debugMode ? "ON" : "OFF") << std::endl;
+            }
+            break;
+
+            case SDLK_r:
+                // 🆕 NEW: 'R' 키로 게임 오브젝트 위치 리셋
+                resetGameObjects();
+                break;
             }
         }
     }
+}
+
+void Game::resetGameObjects() {
+    for (auto& gameObject : m_gameObjects) {
+        if (gameObject->getName() == "AnimatedPlayer") {
+            gameObject->getTransform()->setPosition(Vector2D(100, 400));
+        }
+        else if (gameObject->getName() == "Enemy1") {
+            gameObject->getTransform()->setPosition(Vector2D(300, 300));
+        }
+        else if (gameObject->getName() == "Enemy2") {
+            gameObject->getTransform()->setPosition(Vector2D(500, 200));
+        }
+    }
+    std::cout << "Game objects reset to initial positions" << std::endl;
 }
 
 void Game::update() {
@@ -233,6 +301,9 @@ void Game::update() {
         gameObject->update();
         gameObject->fixedUpdate();
     }
+
+    // 🆕 NEW: 충돌 검사 수행
+    CollisionManager::Instance()->update();
 }
 
 void Game::render() {
@@ -242,6 +313,9 @@ void Game::render() {
         gameObject->render(m_pRenderer);
     }
 
+    // 🆕 NEW: 충돌체 디버그 렌더링
+    CollisionManager::Instance()->render(m_pRenderer);
+
     SDL_RenderPresent(m_pRenderer);
 }
 
@@ -250,6 +324,9 @@ void Game::clean() {
         gameObject->destroy();
     }
     m_gameObjects.clear();
+
+    // 🆕 NEW: CollisionManager 해제
+    CollisionManager::Release();
 
     TheTextureManager::Instance()->clearFromTextureMap("animate");
     TheTextureManager::Instance()->clearFromTextureMap("animate-alpha");

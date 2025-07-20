@@ -1,9 +1,10 @@
-#ifndef ENEMY_BEHAVIOR_H
+ï»¿#ifndef ENEMY_BEHAVIOR_H
 #define ENEMY_BEHAVIOR_H
 
 #include "MonoBehaviour.h"
 #include "SpriteRenderer.h"
 #include "Vector2D.h"
+#include "Collider.h"
 
 class EnemyBehavior : public MonoBehaviour {
 public:
@@ -11,7 +12,7 @@ public:
     EnemyBehavior();
     virtual ~EnemyBehavior();
 
-    // Àû ¼Ó¼º ¼³Á¤
+    // ì  ì†ì„± ì„¤ì •
     void setPatrolRange(float range) { m_patrolRange = range; }
     void setMoveSpeed(float speed) { m_moveSpeed = speed; }
 
@@ -21,23 +22,33 @@ private:
     void Update() override;
     void FixedUpdate() override;
 
-    // ³»ºÎ À¯Æ¿¸®Æ¼ ÇÔ¼öµé
+    // ğŸ†• NEW: ì¶©ëŒ ì´ë²¤íŠ¸ ì˜¤ë²„ë¼ì´ë“œ
+    void onCollisionEnter(const Collision& collision) override;
+    void onCollisionStay(const Collision& collision) override;
+    void onCollisionExit(const Collision& collision) override;
+
+    // ë‚´ë¶€ ìœ í‹¸ë¦¬í‹° í•¨ìˆ˜ë“¤
     void updateMovement();
     void updateAnimation();
     void flip();
 
-    // ÄÄÆ÷³ÍÆ® ÂüÁ¶
+    // ì»´í¬ë„ŒíŠ¸ ì°¸ì¡°
     SpriteRenderer* m_spriteRenderer = nullptr;
 
-    // ÀÌµ¿ °ü·Ã º¯¼öµé
+    // ì´ë™ ê´€ë ¨ ë³€ìˆ˜ë“¤
     Vector2D m_startPosition;
-    Vector2D m_currentDirection{ 1, 0 };  // ÃÊ±â ¹æÇâÀº ¿À¸¥ÂÊ
-    float m_patrolRange = 200.0f;       // ÀÌµ¿ ¹üÀ§
-    float m_moveSpeed = 100.0f;         // ÀÌµ¿ ¼Óµµ
+    Vector2D m_currentDirection{ 1, 0 };
+    float m_patrolRange = 200.0f;
+    float m_moveSpeed = 100.0f;
 
-    // ¾Ö´Ï¸ŞÀÌ¼Ç °ü·Ã
+    // ğŸ†• NEW: AI ìƒíƒœ ê´€ë¦¬
+    bool m_hasDetectedPlayer = false;
+    float m_originalMoveSpeed;
+    float m_pauseTimer = 0.0f;
+
+    // ì• ë‹ˆë©”ì´ì…˜ ê´€ë ¨
     bool m_facingRight = true;
-    const int WALK_FRAME_COUNT = 8;     // °È±â ¾Ö´Ï¸ŞÀÌ¼Ç ÇÁ·¹ÀÓ ¼ö
+    const int WALK_FRAME_COUNT = 8;
 };
 
 #endif // ENEMY_BEHAVIOR_H

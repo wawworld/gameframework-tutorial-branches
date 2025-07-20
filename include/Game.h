@@ -10,6 +10,7 @@
 #include "GameObject.h"
 #include <iostream>
 
+
 class Game {
 public:
     static Game* Instance() {
@@ -48,10 +49,11 @@ private:
     std::vector<std::shared_ptr<GameObject>> m_gameObjects;
 
     void createGameObjects();
-    void createPlayer();            // 🆕 NEW: 플레이어 생성 분리
-    void createEnemies();           // 🆕 NEW: 적 생성 메서드
+    void createPlayer();
+    void createEnemies();
     void loadTextures();
     void testSpriteRendering();
+    void resetGameObjects();  // 🆕 NEW: 리셋 기능
 };
 
 typedef Game TheGame;
